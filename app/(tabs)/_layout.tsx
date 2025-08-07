@@ -106,7 +106,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
             <TouchableOpacity onPress={onPress} style={styles.touchable}>
               <Icon
                 size={28}
-                color={isFocused ? colors.header : colors.textMuted}
+                color={isFocused ? colors.primary : colors.textMuted}
                 weight={isFocused ? 'fill' : 'regular'}
               />
             </TouchableOpacity>
