@@ -1,10 +1,16 @@
 // app/(tabs)/index.tsx
 import { Smiley, Trophy } from 'phosphor-react-native';
 import React from 'react';
-import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AnimatedButton } from '../../components/AnimatedButton';
 import { colors } from '../../constants/colors';
 
 export default function HomeScreen() {
+  const handleButtonPress = () => {
+    console.log('Butona tıklandı!');
+    // Burada rrsyon veya başka bir işlem yapılabilir
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
@@ -18,9 +24,11 @@ export default function HomeScreen() {
           <View style={styles.mainCard}>
             <Text style={styles.cardTitle}>Günün Sözü</Text>
             <Text style={styles.quote}>"Hayat, fırtınanın geçmesini beklemek değil, yağmurda dans etmeyi öğrenmektir."</Text>
-            <TouchableOpacity style={styles.actionButton}>
-              <Text style={styles.buttonText}>Ruh Halimi Ekle</Text>
-            </TouchableOpacity>
+            <AnimatedButton
+              title="Ruh Halimi Ekle"
+              onPress={handleButtonPress}
+              style={styles.actionButton}
+            />
           </View>
 
           <View style={styles.infoCardsContainer}>
@@ -62,13 +70,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 1, // iOS ve Android için farklı gölge
+    shadowOpacity: 0.2,
     shadowRadius: 20,
-    elevation: 15, // Android için gölge
+    elevation: 15,
   },
   cardTitle: { fontFamily: 'Nunito-Bold', fontSize: 20, color: colors.textDark },
   quote: { fontFamily: 'Nunito-Regular', fontSize: 16, color: colors.textMuted, textAlign: 'center', marginVertical: 16, minHeight: 45 },
   actionButton: {
+    marginTop: 16,
     backgroundColor: colors.primaryButton,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -90,7 +99,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.15 : 1,
+    shadowOpacity: 0.15,
     shadowRadius: 15,
     elevation: 10,
   },

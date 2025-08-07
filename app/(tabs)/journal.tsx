@@ -8,7 +8,15 @@ const journalData = [
   { id: '2', date: '5 Ağustos 2025', mood: '😊', note: 'Arkadaşlarla kahve içtik.' },
 ];
 
-const JournalEntryCard = ({ mood, date, note }) => (
+interface JournalEntryProps {
+  mood: string;
+  date: string;
+  note: string;
+}
+
+
+
+const JournalEntryCard: React.FC<JournalEntryProps> = ({ mood, date, note }) => (
   <View style={styles.card}>
     <Text style={styles.mood}>{mood}</Text>
     <View>
@@ -24,7 +32,9 @@ export default function JournalScreen() {
       <FlatList
         data={journalData}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <JournalEntryCard {...item} />}
+        renderItem={({ item }) => (
+          <JournalEntryCard {...item} />
+        )}
         ListHeaderComponent={
           <Text style={styles.title}>Günlüğüm</Text>
         }

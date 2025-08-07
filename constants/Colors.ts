@@ -5,7 +5,8 @@ export const colors = {
   textDark: '#3D405B',    // Koyu lacivert metin
   textLight: '#FFFFFF',
   textMuted: '#8D99AE',
+  primary: '#81B29A',     // Yeşil primary rengi
   primaryButton: '#81B29A', // Yeşil buton
   card: '#FFFFFF',
-  shadow: 'rgba(100, 100, 100, 0.2)',
+  shadow: 'rgba(100, 100, 100, 0.2)', // iOS için gölge rengi
 };
