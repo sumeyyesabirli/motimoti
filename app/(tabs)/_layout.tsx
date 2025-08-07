@@ -2,77 +2,89 @@
 import { Tabs } from 'expo-router';
 import { BookOpen, House } from 'phosphor-react-native';
 import React from 'react';
-import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Dimensions, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { colors } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 65;
-const TAB_WIDTH = width / 2;
-const DIP_WIDTH = 80; // Kavisin genişliği
-const DIP_HEIGHT = 40; // Kavisin derinliği
+const TAB_COUNT = 2;
+const TAB_WIDTH = width / TAB_COUNT;
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-// Özel Tab Bar Bileşeni
-const CustomTabBar = ({ state, descriptors, navigation }) => {
-  const { bottom } = useSafeAreaInsets(); // Telefonun altındaki sistem boşluğunu al
-  const activeIndex = useSharedValue(state.index);
-  const indicatorPosition = useSharedValue(state.index * TAB_WIDTH);
+// Tip tanımları
+interface TabBarProps {
+  state: {
+    index: number;
+    routes: Array<{ key: string; name: string }>;
+  };
+  descriptors: any;
+  navigation: any;
+}
 
-  // İkonun animasyonlu stili
-  const animatedIconStyle = (index) => useAnimatedStyle(() => {
-    return {
-      transform: [
-        { translateY: withTiming(activeIndex.value === index ? -DIP_HEIGHT / 1.5 : 0) }
-      ],
-    };
-  });
+// Özel Tab Bar Bileşeni
+const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
+  const { bottom } = useSafeAreaInsets();
+  const activeIndex = useSharedValue(state.index);
+  const horizontalPosition = useSharedValue(state.index * TAB_WIDTH);
 
   // Kavisin animasyonlu stili
   const animatedPathStyle = useAnimatedStyle(() => {
-    const x = indicatorPosition.value;
-    const halfTab = TAB_WIDTH / 2;
-    const controlPoint = x + halfTab;
+    const x = horizontalPosition.value;
+    const tabCenter = x + TAB_WIDTH / 2;
 
-    const start = `M0 0`;
-    const left = `L${controlPoint - DIP_WIDTH} 0`;
-    const curve = `C${controlPoint - 50},0 ${controlPoint - 50},${DIP_HEIGHT + 10} ${controlPoint},${DIP_HEIGHT + 10}`;
-    const curve2 = `C${controlPoint + 50},${DIP_HEIGHT + 10} ${controlPoint + 50},0 ${controlPoint + DIP_WIDTH},0`;
-    const right = `L${width} 0 L${width} ${TAB_BAR_HEIGHT} L0 ${TAB_BAR_HEIGHT} Z`;
-
-    return {
-      d: `${start} ${left} ${curve} ${curve2} ${right}`,
-    };
+    // SVG Path'i oluşturan dize. Bu, kavisin şeklini çizer.
+    const path = `
+      M0,0 
+      L${tabCenter - 50},0 
+      C${tabCenter - 25},0 ${tabCenter - 25},35 ${tabCenter},35 
+      C${tabCenter + 25},35 ${tabCenter + 25},0 ${tabCenter + 50},0 
+      L${width},0 
+      L${width},${TAB_BAR_HEIGHT} 
+      L0,${TAB_BAR_HEIGHT} 
+      Z
+    `;
+    return { d: path } as any;
   });
 
   return (
-    <View style={[styles.tabBarContainer, { height: TAB_BAR_HEIGHT + bottom }]}>
+    // Sistem tuşları için 'bottom' boşluğunu ekleyerek üst üste binmeyi engelliyoruz
+    <View style={[styles.tabBarContainer, { height: TAB_BAR_HEIGHT + bottom, paddingBottom: bottom }]}>
       <Svg width={width} height={TAB_BAR_HEIGHT} style={StyleSheet.absoluteFillObject}>
-        <AnimatedPath fill={colors.card} style={animatedPathStyle} />
+        <AnimatedPath fill={colors.card} animatedProps={animatedPathStyle} />
       </Svg>
 
-      {state.routes.map((route, index) => {
+      {state.routes.map((route: any, index: number) => {
         const isFocused = state.index === index;
         const Icon = index === 0 ? House : BookOpen;
+        
+        // İkonun yukarı/aşağı hareket animasyonu
+        const animatedIconStyle = useAnimatedStyle(() => {
+          return {
+            transform: [
+              { translateY: withSpring(activeIndex.value === index ? -20 : 0, { damping: 15, stiffness: 120 }) }
+            ],
+          };
+        });
 
         const onPress = () => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
             activeIndex.value = index;
-            indicatorPosition.value = withTiming(index * TAB_WIDTH);
+            horizontalPosition.value = withSpring(index * TAB_WIDTH, { damping: 15, stiffness: 120 });
           }
         };
 
         return (
-          <Animated.View key={route.key} style={[styles.tabItem, animatedIconStyle(index)]}>
+          <Animated.View key={route.key} style={[styles.tabItem, animatedIconStyle]}>
             <TouchableOpacity onPress={onPress} style={styles.touchable}>
               <Icon
                 size={28}
-                color={isFocused ? '#E07A5F' : '#8D99AE'}
+                color={isFocused ? colors.header : colors.textMuted}
                 weight={isFocused ? 'fill' : 'regular'}
               />
             </TouchableOpacity>
@@ -82,7 +94,6 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
     </View>
   );
 };
-
 
 export default function TabLayout() {
   return (
@@ -103,11 +114,17 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    shadowColor: '#3D405B',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 25,
-    elevation: 25,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.textDark,
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 20,
+      },
+    }),
   },
   tabItem: {
     flex: 1,
