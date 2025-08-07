@@ -1,19 +1,40 @@
 // app/(tabs)/index.tsx
+import { useRouter } from 'expo-router';
 import { Smiley, Trophy } from 'phosphor-react-native';
 import React from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { AnimatedButton } from '../../components/AnimatedButton';
 import { colors } from '../../constants/colors';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  
   const handleButtonPress = () => {
     console.log('Butona tıklandı!');
     // Burada rrsyon veya başka bir işlem yapılabilir
   };
 
+  // Sola sürükleme ile journal sayfasına git
+  const navigateToJournal = () => {
+    router.replace('/journal');
+  };
+
+  const panGesture = Gesture.Pan()
+    .onEnd((event) => {
+      const threshold = 100; // 100px sürükleme eşiği
+      
+      if (event.translationX < -threshold) {
+        // Sola sürükleme - journal sayfasına git
+        runOnJS(navigateToJournal)();
+      }
+    });
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+    <GestureDetector gesture={panGesture}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Smiley size={60} color={colors.textLight} weight="thin" style={{ opacity: 0.8 }} />
           <Text style={styles.headerTitle}>Merhaba Şekerim!</Text>
@@ -44,8 +65,9 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </GestureDetector>
   );
 }
 

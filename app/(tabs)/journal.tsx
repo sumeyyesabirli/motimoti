@@ -1,6 +1,9 @@
 // app/(tabs)/journal.tsx
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { FlatList, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { colors } from '../../constants/colors';
 
 const journalData = [
@@ -27,9 +30,27 @@ const JournalEntryCard: React.FC<JournalEntryProps> = ({ mood, date, note }) => 
 );
 
 export default function JournalScreen() {
+  const router = useRouter();
+
+  // Sağa sürükleme ile ana sayfaya git
+  const navigateToHome = () => {
+    router.replace('/');
+  };
+
+  const panGesture = Gesture.Pan()
+    .onEnd((event) => {
+      const threshold = 100; // 100px sürükleme eşiği
+      
+      if (event.translationX > threshold) {
+        // Sağa sürükleme - ana sayfaya git
+        runOnJS(navigateToHome)();
+      }
+    });
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <FlatList
+    <GestureDetector gesture={panGesture}>
+      <SafeAreaView style={styles.safeArea}>
+        <FlatList
         data={journalData}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -39,8 +60,9 @@ export default function JournalScreen() {
           <Text style={styles.title}>Günlüğüm</Text>
         }
         contentContainerStyle={styles.listContainer}
-      />
-    </SafeAreaView>
+        />
+      </SafeAreaView>
+    </GestureDetector>
   );
 }
 

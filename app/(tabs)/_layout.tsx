@@ -30,6 +30,15 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
   const { bottom } = useSafeAreaInsets();
   const activeIndex = useSharedValue(state.index);
   const horizontalPosition = useSharedValue(state.index * TAB_WIDTH);
+  const translateX = useSharedValue(0);
+
+  // State değiştiğinde animasyonları güncelle
+  React.useEffect(() => {
+    activeIndex.value = state.index;
+    horizontalPosition.value = withSpring(state.index * TAB_WIDTH, { damping: 15, stiffness: 120 });
+  }, [state.index]);
+
+
 
   // Kavisin animasyonlu stili
   const animatedPathStyle = useAnimatedStyle(() => {
