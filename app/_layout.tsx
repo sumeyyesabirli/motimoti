@@ -8,9 +8,10 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    'Poppins-Regular': require('../assets/fonts/SpaceMono-Regular.ttf'),
-    'Poppins-SemiBold': require('../assets/fonts/SpaceMono-Regular.ttf'),
-    'Poppins-Bold': require('../assets/fonts/SpaceMono-Regular.ttf'),
+    'Nunito-Regular': require('../assets/fonts/Nunito-Regular.ttf'),
+    'Nunito-SemiBold': require('../assets/fonts/Nunito-SemiBold.ttf'),
+    'Nunito-Bold': require('../assets/fonts/Nunito-Bold.ttf'),
+    'Nunito-ExtraBold': require('../assets/fonts/Nunito-ExtraBold.ttf'),
   });
 
   useEffect(() => {

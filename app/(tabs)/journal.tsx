@@ -1,14 +1,22 @@
 // app/(tabs)/journal.tsx
 import React from 'react';
-import { FlatList, SafeAreaView, StyleSheet, Text } from 'react-native';
-import { JournalCard } from '../../components/JournalCard';
+import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../constants/colors';
 
 const journalData = [
-  { id: '1', date: '6 Ağustos', mood: '😄', note: 'Harika bir gündü!' },
-  { id: '2', date: '5 Ağustos', mood: '😊', note: 'Arkadaşlarla kahve içtik.' },
-  { id: '3', date: '4 Ağustos', mood: '😐', note: 'Yoğun bir iş günüydü.' },
+  { id: '1', date: '6 Ağustos 2025', mood: '😄', note: 'Harika bir gündü!' },
+  { id: '2', date: '5 Ağustos 2025', mood: '😊', note: 'Arkadaşlarla kahve içtik.' },
 ];
+
+const JournalEntryCard = ({ mood, date, note }) => (
+  <View style={styles.card}>
+    <Text style={styles.mood}>{mood}</Text>
+    <View>
+      <Text style={styles.date}>{date}</Text>
+      <Text style={styles.note}>{note}</Text>
+    </View>
+  </View>
+);
 
 export default function JournalScreen() {
   return (
@@ -16,7 +24,7 @@ export default function JournalScreen() {
       <FlatList
         data={journalData}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <JournalCard {...item} />}
+        renderItem={({ item }) => <JournalEntryCard {...item} />}
         ListHeaderComponent={
           <Text style={styles.title}>Günlüğüm</Text>
         }
@@ -31,11 +39,40 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 24,
     paddingTop: 60,
+    paddingBottom: 120,
   },
   title: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 32,
-    color: colors.text,
+    fontFamily: 'Nunito-ExtraBold',
+    fontSize: 40,
+    color: colors.textDark,
     marginBottom: 16,
+  },
+  card: {
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  mood: {
+    fontSize: 36,
+    marginRight: 16,
+  },
+  date: {
+    fontFamily: 'Nunito-SemiBold',
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  note: {
+    fontFamily: 'Nunito-Bold',
+    fontSize: 16,
+    color: colors.textDark,
+    marginTop: 2,
   },
 });
