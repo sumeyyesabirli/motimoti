@@ -1,6 +1,6 @@
 // app/(tabs)/journal.tsx
 import React from 'react';
-import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../constants/colors';
 
 const journalData = [
@@ -36,17 +36,8 @@ export default function JournalScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  listContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 120,
-  },
-  title: {
-    fontFamily: 'Nunito-ExtraBold',
-    fontSize: 40,
-    color: colors.textDark,
-    marginBottom: 16,
-  },
+  listContainer: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 120 },
+  title: { fontFamily: 'Nunito-ExtraBold', fontSize: 40, color: colors.textDark, marginBottom: 16 },
   card: {
     backgroundColor: colors.card,
     borderRadius: 24,
@@ -56,23 +47,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
+    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 1,
+    shadowRadius: 15,
     elevation: 8,
   },
-  mood: {
-    fontSize: 36,
-    marginRight: 16,
-  },
-  date: {
-    fontFamily: 'Nunito-SemiBold',
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  note: {
-    fontFamily: 'Nunito-Bold',
-    fontSize: 16,
-    color: colors.textDark,
-    marginTop: 2,
-  },
+  mood: { fontSize: 36, marginRight: 16 },
+  date: { fontFamily: 'Nunito-SemiBold', fontSize: 14, color: colors.textMuted },
+  note: { fontFamily: 'Nunito-Bold', fontSize: 16, color: colors.textDark, marginTop: 2 },
 });

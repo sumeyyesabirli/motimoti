@@ -14,19 +14,10 @@ export default function RootLayout() {
     'Nunito-ExtraBold': require('../assets/fonts/Nunito-ExtraBold.ttf'),
   });
 
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+  useEffect(() => { if (error) throw error; }, [error]);
+  useEffect(() => { if (loaded) { SplashScreen.hideAsync(); } }, [loaded]);
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+  if (!loaded) { return null; }
 
   return (
     <Stack>

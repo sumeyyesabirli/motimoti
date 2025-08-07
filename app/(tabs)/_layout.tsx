@@ -5,21 +5,20 @@ import React from 'react';
 import { View } from 'react-native';
 import { colors } from '../../constants/colors';
 
-const TabBarIcon = ({ Icon, color, focused }) => (
+const TabBarIcon = ({ Icon, focused }) => (
   <View style={{
     backgroundColor: focused ? colors.primaryButton : 'transparent',
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    transform: [{ translateY: focused ? -5 : 0 }],
+    transform: [{ translateY: focused ? -15 : 0 }],
     shadowColor: focused ? colors.primaryButton : 'transparent',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: focused ? 0.4 : 0,
-    shadowRadius: 15,
-    elevation: focused ? 10 : 0,
-    transition: 'all 0.3s ease',
+    shadowOpacity: focused ? 0.3 : 0,
+    shadowRadius: 10,
+    elevation: focused ? 15 : 0,
   }}>
     <Icon
       size={28}
@@ -37,7 +36,7 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarStyle: {
           position: 'absolute',
-          bottom: 25,
+          bottom: 30,
           left: 20,
           right: 20,
           height: 80,
@@ -48,7 +47,7 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: -5 },
           shadowOpacity: 0.1,
           shadowRadius: 20,
-          elevation: 20,
+          elevation: 20, // Android için ana gölge
         },
       }}>
       <Tabs.Screen

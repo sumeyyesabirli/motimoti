@@ -1,7 +1,7 @@
 // app/(tabs)/index.tsx
 import { Smiley, Trophy } from 'phosphor-react-native';
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/colors';
 
 export default function HomeScreen() {
@@ -52,22 +52,9 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 40,
     alignItems: 'center',
   },
-  headerTitle: {
-    fontFamily: 'Nunito-ExtraBold',
-    fontSize: 32,
-    color: colors.textLight,
-    marginTop: 8,
-  },
-  headerSubtitle: {
-    fontFamily: 'Nunito-SemiBold',
-    fontSize: 16,
-    color: colors.textLight,
-    opacity: 0.9,
-  },
-  mainContent: {
-    padding: 24,
-    marginTop: -40, // Kartın başlığın üzerine çıkmasını sağlar
-  },
+  headerTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 32, color: colors.textLight, marginTop: 8 },
+  headerSubtitle: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.textLight, opacity: 0.9 },
+  mainContent: { padding: 24, marginTop: -40 },
   mainCard: {
     backgroundColor: colors.card,
     borderRadius: 32,
@@ -75,23 +62,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 1,
-    shadowRadius: 30,
-    elevation: 15,
+    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 1, // iOS ve Android için farklı gölge
+    shadowRadius: 20,
+    elevation: 15, // Android için gölge
   },
-  cardTitle: {
-    fontFamily: 'Nunito-Bold',
-    fontSize: 20,
-    color: colors.textDark,
-  },
-  quote: {
-    fontFamily: 'Nunito-Regular',
-    fontSize: 16,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginVertical: 16,
-    height: 50,
-  },
+  cardTitle: { fontFamily: 'Nunito-Bold', fontSize: 20, color: colors.textDark },
+  quote: { fontFamily: 'Nunito-Regular', fontSize: 16, color: colors.textMuted, textAlign: 'center', marginVertical: 16, minHeight: 45 },
   actionButton: {
     backgroundColor: colors.primaryButton,
     paddingVertical: 16,
@@ -99,45 +75,26 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     shadowColor: colors.primaryButton,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 8,
   },
-  buttonText: {
-    fontFamily: 'Nunito-Bold',
-    fontSize: 16,
-    color: colors.textLight,
-  },
-  infoCardsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 24,
-  },
+  buttonText: { fontFamily: 'Nunito-Bold', fontSize: 16, color: colors.textLight },
+  infoCardsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 },
   infoCard: {
     backgroundColor: colors.card,
     borderRadius: 32,
-    padding: 16,
+    paddingVertical: 16,
     flex: 1,
     marginHorizontal: 8,
     alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 1,
+    shadowOpacity: Platform.OS === 'ios' ? 0.15 : 1,
     shadowRadius: 15,
     elevation: 10,
   },
-  infoEmoji: {
-    fontSize: 28,
-  },
-  infoValue: {
-    fontFamily: 'Nunito-Bold',
-    fontSize: 18,
-    color: colors.textDark,
-    marginTop: 8,
-  },
-  infoLabel: {
-    fontFamily: 'Nunito-Regular',
-    fontSize: 12,
-    color: colors.textMuted,
-  },
+  infoEmoji: { fontSize: 28 },
+  infoValue: { fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textDark, marginTop: 8 },
+  infoLabel: { fontFamily: 'Nunito-Regular', fontSize: 12, color: colors.textMuted },
 });
