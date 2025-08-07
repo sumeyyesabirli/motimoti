@@ -1,7 +1,7 @@
 // app/(tabs)/journal.tsx
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { FlatList, Platform, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { colors } from '../../constants/colors';
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: Platform.OS === 'ios' ? 0.1 : 1,
+    shadowOpacity: 0.1,
     shadowRadius: 15,
     elevation: 8,
   },

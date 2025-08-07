@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 8,
   },
-  buttonText: { fontFamily: 'Nunito-Bold', fontSize: 16, color: colors.textLight },
+
   infoCardsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 },
   infoCard: {
     backgroundColor: colors.card,

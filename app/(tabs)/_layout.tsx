@@ -2,7 +2,7 @@
 import { Tabs } from 'expo-router';
 import { BookOpen, House } from 'phosphor-react-native';
 import React from 'react';
-import { Dimensions, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -30,7 +30,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
   const { bottom } = useSafeAreaInsets();
   const activeIndex = useSharedValue(state.index);
   const horizontalPosition = useSharedValue(state.index * TAB_WIDTH);
-  const translateX = useSharedValue(0);
+
 
   // State değiştiğinde animasyonları güncelle
   React.useEffect(() => {
@@ -136,17 +136,11 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.textDark,
-        shadowOffset: { width: 0, height: -8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-      },
-      android: {
-        elevation: 20,
-      },
-    }),
+    shadowColor: colors.textDark,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 20,
   },
   tabItem: {
     flex: 1,
