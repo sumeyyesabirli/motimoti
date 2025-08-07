@@ -35,7 +35,12 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
   // State değiştiğinde animasyonları güncelle
   React.useEffect(() => {
     activeIndex.value = state.index;
-    horizontalPosition.value = withSpring(state.index * TAB_WIDTH, { damping: 15, stiffness: 120 });
+    horizontalPosition.value = withSpring(state.index * TAB_WIDTH, { 
+      damping: 20, 
+      stiffness: 100,
+      mass: 1,
+      velocity: 0
+    });
   }, [state.index]);
 
 
@@ -74,19 +79,27 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
         const animatedIconStyle = useAnimatedStyle(() => {
           return {
             transform: [
-              { translateY: withSpring(activeIndex.value === index ? -20 : 0, { damping: 15, stiffness: 120 }) }
+              { translateY: withSpring(activeIndex.value === index ? -15 : 0, { 
+                damping: 25, 
+                stiffness: 200,
+                mass: 0.8
+              }) }
             ],
           };
         });
 
-        const onPress = () => {
+        const onPress = React.useCallback(() => {
           const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
             activeIndex.value = index;
-            horizontalPosition.value = withSpring(index * TAB_WIDTH, { damping: 15, stiffness: 120 });
+            horizontalPosition.value = withSpring(index * TAB_WIDTH, { 
+              damping: 20, 
+              stiffness: 100,
+              mass: 1
+            });
           }
-        };
+        }, [isFocused, navigation, route.key, route.name, index]);
 
         return (
           <Animated.View key={route.key} style={[styles.tabItem, animatedIconStyle]}>

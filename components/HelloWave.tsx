@@ -1,4 +1,4 @@
-rimport { useEffect } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,

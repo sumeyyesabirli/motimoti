@@ -22,11 +22,25 @@ export default function HomeScreen() {
   };
 
   const panGesture = Gesture.Pan()
+    .minDistance(5)
+    .maxPointers(1)
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-25, 25])
+    .onStart(() => {
+      'worklet';
+      // Gesture başladığında
+    })
+    .onUpdate((event) => {
+      'worklet';
+      // Visual feedback için kullanılabilir
+    })
     .onEnd((event) => {
-      const threshold = 100; // 100px sürükleme eşiği
+      'worklet';
+      const threshold = 60;
+      const velocity = event.velocityX;
       
-      if (event.translationX < -threshold) {
-        // Sola sürükleme - journal sayfasına git
+      // Daha hassas algılama
+      if (event.translationX < -threshold && velocity < -300) {
         runOnJS(navigateToJournal)();
       }
     });
@@ -34,7 +48,13 @@ export default function HomeScreen() {
   return (
     <GestureDetector gesture={panGesture}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer} 
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          directionalLockEnabled={true}
+          bounces={false}
+        >
         <View style={styles.header}>
           <Smiley size={60} color={colors.textLight} weight="thin" style={{ opacity: 0.8 }} />
           <Text style={styles.headerTitle}>Merhaba Şekerim!</Text>
@@ -44,7 +64,7 @@ export default function HomeScreen() {
         <View style={styles.mainContent}>
           <View style={styles.mainCard}>
             <Text style={styles.cardTitle}>Günün Sözü</Text>
-            <Text style={styles.quote}>"Hayat, fırtınanın geçmesini beklemek değil, yağmurda dans etmeyi öğrenmektir."</Text>
+            <Text style={styles.quote}>&ldquo;Hayat, fırtınanın geçmesini beklemek değil, yağmurda dans etmeyi öğrenmektir.&rdquo;</Text>
             <AnimatedButton
               title="Ruh Halimi Ekle"
               onPress={handleButtonPress}
