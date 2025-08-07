@@ -1,16 +1,17 @@
 // components/HomeHeader.tsx
 import { Bell } from 'phosphor-react-native';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../constants/colors';
 
 export const HomeHeader = () => {
   return (
     <View style={styles.headerContainer}>
       <View style={styles.userInfo}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>S</Text>
-        </View>
+        <Image 
+          source={{ uri: 'https://placehold.co/60x60/836FFF/FFFFFF?text=S' }} 
+          style={styles.avatar} 
+        />
         <View>
           <Text style={styles.greeting}>Merhaba Şekerim,</Text>
           <Text style={styles.date}>Bugün 7 Ağustos</Text>
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 50,
+    paddingTop: 50, // SafeAreaView'den sonraki boşluk
   },
   userInfo: {
     flexDirection: 'row',
@@ -39,22 +40,14 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     marginRight: 12,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 20,
-    color: colors.card,
   },
   greeting: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'Poppins-Regular', // Font ailesi eklendi
     fontSize: 16,
     color: colors.textSecondary,
   },
   date: {
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'Poppins-Bold', // Font ailesi eklendi
     fontSize: 20,
     color: colors.text,
   },

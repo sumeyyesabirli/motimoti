@@ -22,12 +22,12 @@ export const ChallengeCard = () => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primary, // <<-- DOĞRU RENK KULLANIMI
     borderRadius: 24,
     padding: 24,
     marginHorizontal: 24,
     marginTop: 30,
-    shadowColor: colors.primary,
+    shadowColor: colors.primary, // <<-- GÖLGE RENGİ GÜNCELLENDİ
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -35,12 +35,12 @@ const styles = StyleSheet.create({
   },
   textContainer: {},
   title: {
-    fontFamily: 'Poppins-Bold',
+    fontFamily: 'Poppins-Bold', // Font ailesi eklendi
     fontSize: 22,
     color: colors.card,
   },
   subtitle: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: 'Poppins-Regular', // Font ailesi eklendi
     fontSize: 16,
     color: colors.card,
     opacity: 0.9,
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   buttonText: {
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: 'Poppins-SemiBold', // Font ailesi eklendi
     fontSize: 14,
     color: colors.card,
     marginRight: 8,
