@@ -11,17 +11,16 @@
   "dependencies": {
     "expo": "~53.0.20",
     "expo-font": "~13.3.2",
+    "expo-image": "~2.4.0",
     "expo-router": "~5.1.4",
     "expo-splash-screen": "~0.30.10",
-    "expo-navigation-bar": "~4.2.7",
     "phosphor-react-native": "^3.0.0",
     "react": "19.0.0",
     "react-native": "0.79.5",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-svg": "15.11.2",
-    "expo-image": "~2.4.0"
+    "react-native-svg": "15.11.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
