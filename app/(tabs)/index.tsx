@@ -21,11 +21,16 @@ export default function HomeScreen() {
     router.replace('/journal');
   };
 
+  // Sağa sürükleme ile profile sayfasına git
+  const navigateToProfile = () => {
+    router.replace('/profile');
+  };
+
   const panGesture = Gesture.Pan()
-    .minDistance(5)
+    .minDistance(20) // Daha yüksek minimum mesafe
     .maxPointers(1)
-    .activeOffsetX([-10, 10])
-    .failOffsetY([-25, 25])
+    .activeOffsetX([-15, 15]) // Daha geniş aktif alan
+    .failOffsetY([-30, 30]) // Daha geniş başarısızlık alanı
     .onStart(() => {
       'worklet';
       // Gesture başladığında
@@ -36,12 +41,15 @@ export default function HomeScreen() {
     })
     .onEnd((event) => {
       'worklet';
-      const threshold = 60;
+      const threshold = 100; // Daha yüksek eşik
       const velocity = event.velocityX;
+      const translation = event.translationX;
       
-      // Daha hassas algılama
-      if (event.translationX < -threshold && velocity < -300) {
+      // Daha kesin koşullar
+      if (translation < -threshold && velocity < -500) {
         runOnJS(navigateToJournal)();
+      } else if (translation > threshold && velocity > 500) {
+        runOnJS(navigateToProfile)();
       }
     });
 
@@ -55,36 +63,36 @@ export default function HomeScreen() {
           directionalLockEnabled={true}
           bounces={false}
         >
-        <View style={styles.header}>
-          <Smiley size={60} color={colors.textLight} weight="thin" style={{ opacity: 0.8 }} />
-          <Text style={styles.headerTitle}>Merhaba Şekerim!</Text>
-          <Text style={styles.headerSubtitle}>Güne bir gülücükle başla</Text>
-        </View>
-
-        <View style={styles.mainContent}>
-          <View style={styles.mainCard}>
-            <Text style={styles.cardTitle}>Günün Sözü</Text>
-            <Text style={styles.quote}>&ldquo;Hayat, fırtınanın geçmesini beklemek değil, yağmurda dans etmeyi öğrenmektir.&rdquo;</Text>
-            <AnimatedButton
-              title="Ruh Halimi Ekle"
-              onPress={handleButtonPress}
-              style={styles.actionButton}
-            />
+          <View style={styles.header}>
+            <Smiley size={60} color={colors.textLight} weight="thin" style={{ opacity: 0.8 }} />
+            <Text style={styles.headerTitle}>Merhaba Şekerim!</Text>
+            <Text style={styles.headerSubtitle}>Güne bir gülücükle başla</Text>
           </View>
 
-          <View style={styles.infoCardsContainer}>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoEmoji}>☀️</Text>
-              <Text style={styles.infoValue}>7 Gün</Text>
-              <Text style={styles.infoLabel}>Seri</Text>
+          <View style={styles.mainContent}>
+            <View style={styles.mainCard}>
+              <Text style={styles.cardTitle}>Günün Sözü</Text>
+              <Text style={styles.quote}>&ldquo;Hayat, fırtınanın geçmesini beklemek değil, yağmurda dans etmeyi öğrenmektir.&rdquo;</Text>
+              <AnimatedButton
+                title="Ruh Halimi Ekle"
+                onPress={handleButtonPress}
+                style={styles.actionButton}
+              />
             </View>
-            <View style={styles.infoCard}>
-              <Trophy size={32} color={colors.textDark} />
-              <Text style={styles.infoValue}>12</Text>
-              <Text style={styles.infoLabel}>Rozet</Text>
+
+            <View style={styles.infoCardsContainer}>
+              <View style={styles.infoCard}>
+                <Text style={styles.infoEmoji}>☀️</Text>
+                <Text style={styles.infoValue}>7 Gün</Text>
+                <Text style={styles.infoLabel}>Seri</Text>
+              </View>
+              <View style={styles.infoCard}>
+                <Trophy size={32} color={colors.textDark} />
+                <Text style={styles.infoValue}>12</Text>
+                <Text style={styles.infoLabel}>Rozet</Text>
+              </View>
             </View>
           </View>
-        </View>
         </ScrollView>
       </SafeAreaView>
     </GestureDetector>

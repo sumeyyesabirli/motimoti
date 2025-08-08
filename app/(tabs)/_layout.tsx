@@ -1,6 +1,6 @@
 // app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
-import { BookOpen, House } from 'phosphor-react-native';
+import { BookOpen, House, User } from 'phosphor-react-native';
 import React from 'react';
 import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -10,7 +10,7 @@ import { colors } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 65;
-const TAB_COUNT = 2;
+const TAB_COUNT = 3;
 const TAB_WIDTH = width / TAB_COUNT;
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -73,7 +73,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
 
       {state.routes.map((route: any, index: number) => {
         const isFocused = state.index === index;
-        const Icon = index === 0 ? House : BookOpen;
+        const Icon = index === 0 ? House : index === 1 ? BookOpen : User;
         
         // İkonun yukarı/aşağı hareket animasyonu
         const animatedIconStyle = useAnimatedStyle(() => {
@@ -125,6 +125,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="journal" />
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }

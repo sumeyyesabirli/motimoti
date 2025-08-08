@@ -37,11 +37,16 @@ export default function JournalScreen() {
     router.replace('/');
   };
 
+  // Sola sürükleme ile profile sayfasına git
+  const navigateToProfile = () => {
+    router.replace('/profile');
+  };
+
   const panGesture = Gesture.Pan()
-    .minDistance(5)
+    .minDistance(20) // Daha yüksek minimum mesafe
     .maxPointers(1)
-    .activeOffsetX([-10, 10])
-    .failOffsetY([-25, 25])
+    .activeOffsetX([-15, 15]) // Daha geniş aktif alan
+    .failOffsetY([-30, 30]) // Daha geniş başarısızlık alanı
     .onStart(() => {
       'worklet';
       // Gesture başladığında
@@ -52,12 +57,15 @@ export default function JournalScreen() {
     })
     .onEnd((event) => {
       'worklet';
-      const threshold = 60;
+      const threshold = 100; // Daha yüksek eşik
       const velocity = event.velocityX;
+      const translation = event.translationX;
       
-      // Daha hassas algılama
-      if (event.translationX > threshold && velocity > 300) {
+      // Daha kesin koşullar
+      if (translation > threshold && velocity > 500) {
         runOnJS(navigateToHome)();
+      } else if (translation < -threshold && velocity < -500) {
+        runOnJS(navigateToProfile)();
       }
     });
 
