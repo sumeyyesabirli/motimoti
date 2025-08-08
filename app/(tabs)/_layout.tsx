@@ -6,7 +6,7 @@ import { Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext'; // useTheme'i import et
 
 const { width } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 65;
@@ -19,7 +19,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 interface TabBarProps {
   state: {
     index: number;
-    routes: Array<{ key: string; name: string }>;
+    routes: { key: string; name: string }[];
   };
   descriptors: any;
   navigation: any;
@@ -27,6 +27,7 @@ interface TabBarProps {
 
 // Özel Tab Bar Bileşeni
 const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
+  const { colors } = useTheme(); // Renkleri temadan al
   const { bottom } = useSafeAreaInsets();
   const activeIndex = useSharedValue(state.index);
   const horizontalPosition = useSharedValue(state.index * TAB_WIDTH);
@@ -63,6 +64,9 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
     `;
     return { d: path } as any;
   });
+
+  // Stilleri dinamik hale getir
+  const styles = getStyles(colors);
 
   return (
     // Sistem tuşları için 'bottom' boşluğunu ekleyerek üst üste binmeyi engelliyoruz
@@ -104,11 +108,11 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
         return (
           <Animated.View key={route.key} style={[styles.tabItem, animatedIconStyle]}>
             <TouchableOpacity onPress={onPress} style={styles.touchable}>
-              <Icon
-                size={28}
-                color={isFocused ? colors.primary : colors.textMuted}
-                weight={isFocused ? 'fill' : 'regular'}
-              />
+                             <Icon
+                 size={28}
+                 color={isFocused ? colors.primaryButton : colors.textMuted}
+                 weight={isFocused ? 'fill' : 'regular'}
+               />
             </TouchableOpacity>
           </Animated.View>
         );
@@ -130,7 +134,8 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+// Stil fonksiyonunu dosyanın dışına taşı
+const getStyles = (colors: any) => StyleSheet.create({
   tabBarContainer: {
     position: 'absolute',
     bottom: 0,

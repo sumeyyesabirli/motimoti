@@ -4,14 +4,11 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
+import { ThemeProvider } from '../context/ThemeContext'; // ThemeProvider'ı import et
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // Uygulama boyunca tam ekran modunu aktif tut
-
-
   const [loaded, error] = useFonts({
     'Nunito-Regular': require('../assets/fonts/Nunito-Regular.ttf'),
     'Nunito-SemiBold': require('../assets/fonts/Nunito-SemiBold.ttf'),
@@ -25,10 +22,12 @@ export default function RootLayout() {
   if (!loaded) { return null; }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }

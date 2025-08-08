@@ -4,7 +4,7 @@ import React from 'react';
 import { FlatList, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext'; // useTheme'i import et
 
 const journalData = [
   { id: '1', date: '6 Ağustos 2025', mood: '😄', note: 'Harika bir gündü!' },
@@ -19,17 +19,10 @@ interface JournalEntryProps {
 
 
 
-const JournalEntryCard: React.FC<JournalEntryProps> = ({ mood, date, note }) => (
-  <View style={styles.card}>
-    <Text style={styles.mood}>{mood}</Text>
-    <View>
-      <Text style={styles.date}>{date}</Text>
-      <Text style={styles.note}>{note}</Text>
-    </View>
-  </View>
-);
+
 
 export default function JournalScreen() {
+  const { colors } = useTheme(); // Renkleri temadan al
   const router = useRouter();
 
   // Sağa sürükleme ile ana sayfaya git
@@ -69,6 +62,19 @@ export default function JournalScreen() {
       }
     });
 
+  // Stilleri dinamik hale getir
+  const styles = getStyles(colors);
+
+  const JournalEntryCard: React.FC<JournalEntryProps> = ({ mood, date, note }) => (
+    <View style={styles.card}>
+      <Text style={styles.mood}>{mood}</Text>
+      <View>
+        <Text style={styles.date}>{date}</Text>
+        <Text style={styles.note}>{note}</Text>
+      </View>
+    </View>
+  );
+
   return (
     <GestureDetector gesture={panGesture}>
       <SafeAreaView style={styles.safeArea}>
@@ -93,7 +99,8 @@ export default function JournalScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Stil fonksiyonunu dosyanın dışına taşı
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   listContainer: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 120 },
   title: { fontFamily: 'Nunito-ExtraBold', fontSize: 40, color: colors.textDark, marginBottom: 16 },

@@ -2,10 +2,10 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Dimensions, Modal, Image as RNImage, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Modal, Image as RNImage, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext'; // useTheme'i import et
 
 const { width } = Dimensions.get('window');
 
@@ -28,6 +28,7 @@ const stages = [
 ];
 
 export default function ProfileScreen() {
+  const { colors, isDark, toggleTheme } = useTheme(); // Tema değiştirme fonksiyonunu al
   const router = useRouter();
   const [showAdventure, setShowAdventure] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
@@ -78,6 +79,9 @@ export default function ProfileScreen() {
     }
   };
 
+  // Stilleri dinamik hale getir
+  const styles = getStyles(colors);
+
   return (
     <GestureDetector gesture={panGesture}>
       <SafeAreaView style={styles.safeArea}>
@@ -114,7 +118,22 @@ export default function ProfileScreen() {
             <Text style={styles.adventureSubtitle}>7 Günlük Papatya Yolculuğu</Text>
             <Text style={styles.adventureButton}>Görüntüle</Text>
           </TouchableOpacity>
-                 </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ayarlar</Text>
+          <View style={styles.settingsContainer}>
+            <View style={styles.settingItem}>
+              <Text style={styles.settingText}>Huzurlu Gece Modu</Text>
+              <Switch
+                value={isDark}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#767577', true: colors.primaryButton }}
+                thumbColor={isDark ? '#f4f3f4' : '#f4f3f4'}
+              />
+            </View>
+          </View>
+        </View>
        </ScrollView>
 
        {/* Büyüme Serüveni Modal */}
@@ -172,7 +191,8 @@ export default function ProfileScreen() {
    );
  }
 
-const styles = StyleSheet.create({
+// Stil fonksiyonunu dosyanın dışına taşı
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   scrollContainer: { paddingBottom: 120, alignItems: 'center' },
   header: {
@@ -245,6 +265,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito-SemiBold',
     fontSize: 16,
     color: colors.primaryButton,
+  },
+  settingsContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    padding: 16,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  settingText: {
+    fontFamily: 'Nunito-SemiBold',
+    fontSize: 16,
+    color: colors.textDark,
   },
   modalSafeArea: {
     flex: 1,

@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     ViewStyle
 } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 interface AnimatedButtonProps {
   title: string;
@@ -24,6 +24,7 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   textStyle,
   disabled = false
 }) => {
+  const { colors } = useTheme(); // Renkleri temadan al
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
 
@@ -75,6 +76,9 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
     onPress();
   };
 
+  // Stilleri dinamik hale getir
+  const styles = getStyles(colors);
+
   return (
     <TouchableOpacity
       onPressIn={handlePressIn}
@@ -99,7 +103,8 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+// Stil fonksiyonunu dosyanın dışına taşı
+const getStyles = (colors: any) => StyleSheet.create({
   button: {
     backgroundColor: colors.primaryButton,
     paddingVertical: 16,

@@ -6,9 +6,10 @@ import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { AnimatedButton } from '../../components/AnimatedButton';
-import { colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function HomeScreen() {
+  const { colors } = useTheme(); // Renkleri temadan al
   const router = useRouter();
   
   const handleButtonPress = () => {
@@ -52,6 +53,9 @@ export default function HomeScreen() {
         runOnJS(navigateToProfile)();
       }
     });
+
+  // Stilleri dinamik hale getir
+  const styles = getStyles(colors);
 
   return (
     <GestureDetector gesture={panGesture}>
@@ -99,7 +103,8 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Stil fonksiyonunu dosyanın dışına taşı
+const getStyles = (colors: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   scrollContainer: { paddingBottom: 120 },
   header: {

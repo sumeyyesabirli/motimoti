@@ -1,8 +1,11 @@
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 export default function NotFoundScreen() {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  
   return (
     <>
       <Stack.Screen options={{ title: 'Sayfa Bulunamadı!' }} />
@@ -16,7 +19,7 @@ export default function NotFoundScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
