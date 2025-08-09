@@ -20,8 +20,8 @@ export default function CatGalleryScreen() {
   const fetchCat = () => {
     setIsLoading(true);
     setCat(generateCatUrl());
-    // Görselin yüklenmesi için kısa bir gecikme
-    setTimeout(() => setIsLoading(false), 1200);
+    // Çok daha hızlı yükleme
+    setTimeout(() => setIsLoading(false), 300);
   };
 
   useEffect(() => {
@@ -58,18 +58,17 @@ export default function CatGalleryScreen() {
     },
     pawButtonContainer: {
       alignItems: 'center',
-      paddingTop: 10, // Daha yukarıda
+      paddingTop: 10,
     },
     pawButton: {
       justifyContent: 'center',
       alignItems: 'center',
-      // Arka plan kaldırıldı
     },
-         pawIconLarge: {
-       width: 120, // DAHA DA BÜYÜK! (100'den 120'ye)
-       height: 120,
-       opacity: 0.95,
-     },
+    pawIconLarge: {
+      width: 120,
+      height: 120,
+      opacity: 0.95,
+    },
     headerTitle: {
       fontFamily: 'Nunito-Bold',
       fontSize: 22,
@@ -101,12 +100,7 @@ export default function CatGalleryScreen() {
       height: '100%',
       borderRadius: 24,
     },
-    // Footer ve refreshButton stilleri kaldırıldı
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    }
+
   }), [colors]);
 
   return (
@@ -135,7 +129,6 @@ export default function CatGalleryScreen() {
             </View>
         </View>
 
-        {/* PATİ BUTONU - Kartın altında */}
         <View style={styles.pawButtonContainer}>
           <TouchableOpacity onPress={fetchCat} style={styles.pawButton}>
             <Image 
@@ -146,7 +139,6 @@ export default function CatGalleryScreen() {
           </TouchableOpacity>
         </View>
         
-        {/* Alt boşluk */}
         <View style={{ height: 30 }} /> 
       </View>
     </SafeAreaView>
