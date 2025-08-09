@@ -26,6 +26,9 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/* --- YENİ KEDİ SAYFASINI EKLE --- */}
+          <Stack.Screen name="cats" options={{ headerShown: false }} />
+          {/* ------------------------------- */}
         </Stack>
       </GestureHandlerRootView>
     </ThemeProvider>
