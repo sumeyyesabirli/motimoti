@@ -21,10 +21,8 @@ export default function CatGalleryScreen() {
     setIsLoading(true);
     setCat(generateCatUrl());
     // Görselin yüklenmesi için kısa bir gecikme
-    setTimeout(() => setIsLoading(false), 1000);
+    setTimeout(() => setIsLoading(false), 1200);
   };
-
-
 
   useEffect(() => {
     fetchCat();
@@ -32,90 +30,124 @@ export default function CatGalleryScreen() {
 
   const styles = useMemo(() => StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'flex-start',
+    container: {
+      flex: 1,
+      justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingTop: 50,
-      paddingBottom: 20,
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1,
+      padding: 24,
     },
-    backButton: {
-      backgroundColor: 'rgba(255, 255, 255, 0.7)',
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+    header: {
+      width: '100%',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: 30,
+    },
+    headerButton: {
+      backgroundColor: colors.card,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       justifyContent: 'center',
       alignItems: 'center',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 10,
+      elevation: 5,
     },
-    imageContainer: {
+    pawButtonContainer: {
+      alignItems: 'center',
+      paddingTop: 10, // Daha yukarıda
+    },
+    pawButton: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      // Arka plan kaldırıldı
+    },
+    pawIconLarge: {
+      width: 100, // DAHAAAAA BÜYÜK! (80'den 100'e)
+      height: 100,
+      opacity: 0.95,
+    },
+    headerTitle: {
+      fontFamily: 'Nunito-Bold',
+      fontSize: 22,
+      color: colors.textDark,
+    },
+    imageFrame: {
       flex: 1,
+      width: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 20,
+    },
+    imageCard: {
+      width: '100%',
+      aspectRatio: 1,
+      backgroundColor: colors.card,
+      borderRadius: 32,
+      padding: 12,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 1,
+      shadowRadius: 20,
+      elevation: 15,
       justifyContent: 'center',
       alignItems: 'center',
     },
     image: {
       width: '100%',
       height: '100%',
+      borderRadius: 24,
     },
+    // Footer ve refreshButton stilleri kaldırıldı
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.background,
-    },
-    bottomButtonContainer: {
-      position: 'absolute',
-      bottom: 40,
-      left: 0,
-      right: 0,
-      alignItems: 'center',
-      zIndex: 1,
-    },
-    pawButton: {
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
-    },
-    pawIcon: {
-      fontSize: 24,
     }
   }), [colors]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <CaretLeft size={24} color={colors.textDark} />
-        </TouchableOpacity>
-      </View>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+            <CaretLeft size={24} color={colors.textDark} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Günün Sürprizi</Text>
+          <View style={{ width: 44 }} />
+        </View>
 
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primaryButton} />
+        <View style={styles.imageFrame}>
+            <View style={styles.imageCard}>
+              {isLoading ? (
+                <ActivityIndicator size="large" color={colors.primaryButton} />
+              ) : (
+                <Image 
+                  source={{ uri: cat }} 
+                  style={styles.image} 
+                  contentFit="contain"
+                  transition={500} 
+                />
+              )}
+            </View>
         </View>
-      ) : (
-        <View style={styles.imageContainer}>
-            <Image source={{ uri: cat }} style={styles.image} contentFit="contain" transition={500} />
+
+        {/* PATİ BUTONU - Kartın altında */}
+        <View style={styles.pawButtonContainer}>
+          <TouchableOpacity onPress={fetchCat} style={styles.pawButton}>
+            <Image 
+              source={require('../assets/images/pati.png')}
+              style={styles.pawIconLarge}
+              contentFit="contain"
+            />
+          </TouchableOpacity>
         </View>
-      )}
-      
-      <View style={styles.bottomButtonContainer}>
-        <TouchableOpacity onPress={fetchCat} style={styles.pawButton} disabled={isLoading}>
-          <Text style={styles.pawIcon}>🐾</Text>
-        </TouchableOpacity>
+        
+        {/* Alt boşluk */}
+        <View style={{ height: 30 }} /> 
       </View>
     </SafeAreaView>
   );
