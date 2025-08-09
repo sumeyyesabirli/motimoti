@@ -65,11 +65,11 @@ export default function CatGalleryScreen() {
       alignItems: 'center',
       // Arka plan kaldırıldı
     },
-    pawIconLarge: {
-      width: 100, // DAHAAAAA BÜYÜK! (80'den 100'e)
-      height: 100,
-      opacity: 0.95,
-    },
+         pawIconLarge: {
+       width: 120, // DAHA DA BÜYÜK! (100'den 120'ye)
+       height: 120,
+       opacity: 0.95,
+     },
     headerTitle: {
       fontFamily: 'Nunito-Bold',
       fontSize: 22,
