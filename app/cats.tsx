@@ -2,8 +2,8 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { CaretLeft } from 'phosphor-react-native';
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
 const generateCatUrl = () => {
@@ -16,16 +16,44 @@ export default function CatGalleryScreen() {
   const router = useRouter();
   const [cat, setCat] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Pati animasyonunu başlat
+  const startPawAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  };
 
   const fetchCat = () => {
     setIsLoading(true);
     setCat(generateCatUrl());
-    // Çok daha hızlı yükleme
     setTimeout(() => setIsLoading(false), 300);
   };
 
+  // İlk yükleme için ayrı fonksiyon
+  const initialLoad = () => {
+    setIsLoading(true);
+    setCat(generateCatUrl());
+    setTimeout(() => {
+      setIsLoading(false);
+      startPawAnimation(); // İlk yüklemeden sonra animasyonu başlat
+    }, 300);
+  };
+
   useEffect(() => {
-    fetchCat();
+    initialLoad();
   }, []);
 
   const styles = useMemo(() => StyleSheet.create({
@@ -131,11 +159,13 @@ export default function CatGalleryScreen() {
 
         <View style={styles.pawButtonContainer}>
           <TouchableOpacity onPress={fetchCat} style={styles.pawButton}>
-            <Image 
-              source={require('../assets/images/pati.png')}
-              style={styles.pawIconLarge}
-              contentFit="contain"
-            />
+            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+              <Image 
+                source={require('../assets/images/pati.png')}
+                style={styles.pawIconLarge}
+                contentFit="contain"
+              />
+            </Animated.View>
           </TouchableOpacity>
         </View>
         
