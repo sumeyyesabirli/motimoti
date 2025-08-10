@@ -11,20 +11,24 @@ const { width } = Dimensions.get('window');
 
 // Örnek tamamlanmış çiçekler (Veritabanından gelecek)
 const collectedFlowers = [
-  require('../../assets/flowers/paptya/Papatya (7).png'),
-  // Başka bir papatya daha ekleyelim
-  require('../../assets/flowers/paptya/Papatya (7).png'),
+  require('../../assets/flowers/paptya/Papatya(1).gif'),
+  require('../../assets/flowers/paptya/Papatya(2).gif'),
+  require('../../assets/flowers/paptya/Papatya(3).gif'),
+  require('../../assets/flowers/paptya/Papatya(4).png'),
+  require('../../assets/flowers/paptya/Papatya(5).png'),
+  require('../../assets/flowers/paptya/Papatya(6).gif'),
+  require('../../assets/flowers/paptya/Papatya(7).png'),
 ];
 
 // Papatya serüveninin aşamaları ve görselleri
 const stages = [
-  { day: 1, description: "Her şey bu küçük adımla başladı.", image: require('../../assets/flowers/paptya/Papatya (1).png') },
-  { day: 2, description: "Toprağı yaran o ilk umut ışığı.", image: require('../../assets/flowers/paptya/Papatya (2).png') },
-  { day: 3, description: "Hayata doğru emin adımlarla uzanıyor.", image: require('../../assets/flowers/paptya/Papatya (3).png') },
-  { day: 4, description: "Gövdeden çıkan ilk yaşam belirtileri.", image: require('../../assets/flowers/paptya/Papatya (4).png') },
-  { day: 5, description: "Güzelliğini içinde saklayan bir sürpriz.", image: require('../../assets/flowers/paptya/Papatya (5).png') },
-  { day: 6, description: "Dünyaya merhaba demeye çok yakın.", image: require('../../assets/flowers/paptya/Papatya (6).png') },
-  { day: 7, description: "Tebrikler! Emeğinin karşılığı bu eşsiz güzellik.", image: require('../../assets/flowers/paptya/Papatya (7).png') }
+  { day: 1, description: "Her şey bu küçük adımla başladı.", image: require('../../assets/flowers/paptya/Papatya(1).gif') },
+  { day: 2, description: "Toprağı yaran o ilk umut ışığı.", image: require('../../assets/flowers/paptya/Papatya(2).gif') },
+  { day: 3, description: "Hayata doğru emin adımlarla uzanıyor.", image: require('../../assets/flowers/paptya/Papatya(3).gif') },
+  { day: 4, description: "Gövdeden çıkan ilk yaşam belirtileri.", image: require('../../assets/flowers/paptya/Papatya(4).png') },
+  { day: 5, description: "Güzelliğini içinde saklayan bir sürpriz.", image: require('../../assets/flowers/paptya/Papatya(5).png') },
+  { day: 6, description: "Dünyaya merhaba demeye çok yakın.", image: require('../../assets/flowers/paptya/Papatya(6).gif') },
+  { day: 7, description: "Tebrikler! Emeğinin karşılığı bu eşsiz güzellik.", image: require('../../assets/flowers/paptya/Papatya(7).png') }
 ];
 
 export default function ProfileScreen() {
