@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext'; // ThemeProvider'ı import et
 
 SplashScreen.preventAutoHideAsync();
@@ -21,16 +22,27 @@ export default function RootLayout() {
 
   if (!loaded) { return null; }
 
+  const AppRoutes = () => {
+    const { user } = useAuth();
+    return (
+      <Stack>
+        {user ? (
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        ) : (
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        )}
+        <Stack.Screen name="cats" options={{ headerShown: false }} />
+      </Stack>
+    );
+  };
+
   return (
     <ThemeProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/* --- YENİ KEDİ SAYFASINI EKLE --- */}
-          <Stack.Screen name="cats" options={{ headerShown: false }} />
-          {/* ------------------------------- */}
-        </Stack>
-      </GestureHandlerRootView>
+      <AuthProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AppRoutes />
+        </GestureHandlerRootView>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

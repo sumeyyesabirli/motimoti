@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "309702702738",
+    "project_id": "motimoti-bc114",
+    "storage_bucket": "motimoti-bc114.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:309702702738:android:790d097ef87eff60a2584b",
+        "android_client_info": {
+          "package_name": "com.sumeyyesabirli.motimoti"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "309702702738-4u1phg54mfbkv6mfd0i5fvc96s30lom3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBW3NOoFSYxXP2jixrXsrteoK-W7xuFQC8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "309702702738-4u1phg54mfbkv6mfd0i5fvc96s30lom3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

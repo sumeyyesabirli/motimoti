@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Dimensions, Modal, Image as RNImage, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext'; // useTheme'i import et
 
 const { width } = Dimensions.get('window');
@@ -34,6 +35,7 @@ const stages = [
 export default function ProfileScreen() {
   const { colors, isDark, toggleTheme } = useTheme(); // Tema değiştirme fonksiyonunu al
   const router = useRouter();
+  const { signOutUser } = useAuth();
   const [showAdventure, setShowAdventure] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
   const currentStage = stages[currentDay - 1];
@@ -95,7 +97,7 @@ export default function ProfileScreen() {
             source={{ uri: 'https://placehold.co/100x100/E07A5F/FFFFFF?text=S&font=nunito' }} 
             style={styles.avatar} 
           />
-          <Text style={styles.name}>Sümeyye Sabırlı</Text>
+          <Text style={styles.name}>Sümeyye</Text>
           <Text style={styles.level}>Seviye 5: Hayalperest</Text>
         </View>
 
@@ -136,6 +138,9 @@ export default function ProfileScreen() {
                 thumbColor={isDark ? '#f4f3f4' : '#f4f3f4'}
               />
             </View>
+            <TouchableOpacity style={[styles.settingItem, { justifyContent: 'center' }]} onPress={signOutUser}>
+              <Text style={[styles.settingText, { color: '#E07A5F', textAlign: 'center' }]}>Çıkış Yap</Text>
+            </TouchableOpacity>
           </View>
         </View>
        </ScrollView>
