@@ -1,64 +1,43 @@
-// Google modülü Expo Go'da native olmadığı için dinamik import edeceğiz
-import { useRouter } from 'expo-router';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+// app/(auth)/login.tsx
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, NativeModules, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 import { colors } from '../../constants/colors';
-import { useAuth } from '../../context/AuthContext';
 import { auth } from '../../firebaseConfig';
 
-// Not: Google Sign-In, Expo Go'da çalışmaz. EAS build veya dev client gerekir.
+// Client ID'lerini Firebase Konsolu'ndan kopyalayıp girin
+import { useRouter } from 'expo-router';
+
+// Google Sign-In yapılandırması dinamik import ile on-demand yapılacak
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signInWithEmail, signUpWithEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const hasGoogleNative = useMemo(() => Boolean((NativeModules as any)?.RNGoogleSignin), []);
-  const isFormValid = email.trim().length > 3 && password.length >= 6;
 
-  const parseAuthError = (e: any): string => {
-    const code = e?.code as string | undefined;
-    switch (code) {
-      case 'auth/invalid-email':
-        return 'Geçersiz e-posta adresi.';
-      case 'auth/missing-password':
-      case 'auth/invalid-password':
-        return 'Geçersiz şifre.';
-      case 'auth/user-not-found':
-        return 'Kullanıcı bulunamadı. Lütfen kayıt olun.';
-      case 'auth/wrong-password':
-      case 'auth/invalid-credential':
-        return 'E-posta veya şifre hatalı.';
-      case 'auth/too-many-requests':
-        return 'Çok fazla deneme yapıldı. Bir süre sonra tekrar deneyin.';
-      case 'auth/network-request-failed':
-        return 'Ağ hatası. İnternet bağlantınızı kontrol edin.';
-      default:
-        return e?.message ?? 'Bilinmeyen bir hata oluştu.';
+  const handleSignIn = async () => {
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      router.replace('/');
+    } catch (error) {
+      console.error(error);
+      alert('Giriş yapılamadı.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSignUp = async () => {
     setLoading(true);
     try {
-      await signUpWithEmail(email, password);
+      await createUserWithEmailAndPassword(auth, email.trim(), password);
       router.replace('/');
-    } catch (error: any) {
-      alert(parseAuthError(error));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignIn = async () => {
-    setLoading(true);
-    try {
-      await signInWithEmail(email, password);
-      router.replace('/');
-    } catch (error: any) {
-      alert(parseAuthError(error));
+    } catch (error) {
+      console.error(error);
+      alert('Kayıt olunamadı.');
     } finally {
       setLoading(false);
     }
@@ -70,21 +49,26 @@ export default function LoginScreen() {
       alert('Google ile giriş için Expo Dev Client veya EAS build gereklidir.');
       return;
     }
+    setLoading(true);
     try {
       const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
       GoogleSignin.configure({
         webClientId: '309702702738-4u1phg54mfbkv6mfd0i5fvc96s30lom3.apps.googleusercontent.com',
+        iosClientId: '309702702738-cessb1jorh50kq6mv4oihbnv8cuf48ui.apps.googleusercontent.com',
       });
+      // Android'de Play Services kontrolü
       if (Platform.OS === 'android') {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       }
       const { idToken } = await GoogleSignin.signIn();
-      if (!idToken) throw new Error('Google kimlik doğrulama başarısız.');
-      const credential = GoogleAuthProvider.credential(idToken);
-      await signInWithCredential(auth, credential);
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(auth, googleCredential);
       router.replace('/');
-    } catch (e: any) {
-      console.warn('Google sign-in hata:', e?.message ?? e);
+    } catch (error) {
+      console.error(error);
+      alert('Google ile giriş yapılamadı.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,24 +93,15 @@ export default function LoginScreen() {
         <ActivityIndicator size="large" color={colors.light.primaryButton} />
       ) : (
         <>
-          <TouchableOpacity style={[styles.button, !isFormValid && { opacity: 0.6 }]} disabled={!isFormValid} onPress={handleSignIn}>
+          <TouchableOpacity style={styles.button} onPress={handleSignIn}>
             <Text style={styles.buttonText}>Giriş Yap</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.buttonOutline, !isFormValid && { opacity: 0.6 }]} disabled={!isFormValid} onPress={handleSignUp}>
+          <TouchableOpacity style={[styles.button, styles.buttonOutline]} onPress={handleSignUp}>
             <Text style={[styles.buttonText, styles.buttonOutlineText]}>Kayıt Ol</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: '#DB4437' }, !hasGoogleNative && { opacity: 0.6 }]}
-            disabled={!hasGoogleNative}
-            onPress={onGoogleButtonPress}
-          >
+          <TouchableOpacity style={[styles.button, { backgroundColor: '#4285F4' }]} onPress={onGoogleButtonPress}>
             <Text style={styles.buttonText}>Google ile Giriş Yap</Text>
           </TouchableOpacity>
-          {!hasGoogleNative && (
-            <Text style={{ marginTop: 8, color: '#8D99AE', fontFamily: 'Nunito-Regular', fontSize: 12 }}>
-              Google ile giriş/kayıt için Expo Dev Client veya EAS build gereklidir.
-            </Text>
-          )}
         </>
       )}
     </SafeAreaView>

@@ -1,52 +1,44 @@
-import { User, createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+// context/AuthContext.tsx
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { auth } from '../firebaseConfig';
 
-type AuthContextValue = {
+interface AuthContextType {
   user: User | null;
-  initializing: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  isLoading: boolean;
   signOutUser: () => Promise<void>;
-};
+}
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+  signOutUser: async () => {},
+});
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [initializing, setInitializing] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Firebase dinleyicisi: kullanıcı giriş/çıkış yaptığında tetiklenir
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setInitializing(false);
+      setIsLoading(false);
     });
+
     return unsubscribe;
   }, []);
 
-  const value = useMemo<AuthContextValue>(() => ({
-    user,
-    initializing,
-    signInWithEmail: async (email: string, password: string) => {
-      const normalizedEmail = email.trim();
-      await signInWithEmailAndPassword(auth, normalizedEmail, password);
-    },
-    signUpWithEmail: async (email: string, password: string) => {
-      const normalizedEmail = email.trim();
-      await createUserWithEmailAndPassword(auth, normalizedEmail, password);
-    },
-    signOutUser: async () => {
-      await signOut(auth);
-    },
-  }), [user, initializing]);
+  const signOutUser = async () => {
+    await signOut(auth);
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isLoading, signOutUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuth = (): AuthContextValue => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
-  return ctx;
-};
-
+export const useAuth = () => useContext(AuthContext);
 
