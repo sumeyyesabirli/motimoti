@@ -1,8 +1,8 @@
 // components/Toast.tsx
-import { MotiView } from 'moti';
 import { CheckCircle, WarningCircle } from 'phosphor-react-native';
 import React from 'react';
 import { StyleSheet, Text } from 'react-native';
+import Animated, { SlideInDown, SlideOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTheme } from '../context/ThemeContext';
@@ -19,16 +19,14 @@ export const Toast = () => {
   const Icon = isSuccess ? CheckCircle : WarningCircle;
 
   return (
-    <MotiView
-      from={{ translateY: -150, opacity: 0 }}
-      animate={{ translateY: insets.top + 10, opacity: 1 }}
-      exit={{ translateY: -150, opacity: 0 }}
-      transition={{ type: 'timing', duration: 400 }}
-      style={[styles.container, { backgroundColor }]}
+    <Animated.View
+      entering={SlideInDown.duration(400)}
+      exiting={SlideOutUp.duration(300)}
+      style={[styles.container, { backgroundColor, top: insets.top + 10 }]}
     >
       <Icon size={24} color={colors.textLight} weight="fill" />
       <Text style={styles.text}>{feedback.message}</Text>
-    </MotiView>
+    </Animated.View>
   );
 };
 
