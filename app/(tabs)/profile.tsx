@@ -1,4 +1,5 @@
 // app/(tabs)/profile.tsx
+import { Link, useFocusEffect } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { PencilSimple, SignOut } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -37,6 +38,23 @@ export default function ProfileScreen() {
     fetchUserData();
   }, [user]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      let mounted = true;
+      const refresh = async () => {
+        if (user) {
+          setLoading(true);
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (mounted && docSnap.exists()) setUserData(docSnap.data());
+          setLoading(false);
+        }
+      };
+      refresh();
+      return () => { mounted = false; };
+    }, [user])
+  );
+
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const handleSignOut = () => { auth.signOut(); };
@@ -65,10 +83,12 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button}>
-            <PencilSimple size={20} color={colors.textDark} />
-            <Text style={styles.buttonText}>Profili Düzenle</Text>
-          </TouchableOpacity>
+          <Link href="/profile/edit" asChild>
+            <TouchableOpacity style={styles.button}>
+              <PencilSimple size={20} color={colors.textDark} />
+              <Text style={styles.buttonText}>Profili Düzenle</Text>
+            </TouchableOpacity>
+          </Link>
           <TouchableOpacity style={[styles.button, { backgroundColor: '#FFD6D6' }]} onPress={handleSignOut}>
             <SignOut size={20} color="#D9534F" />
             <Text style={[styles.buttonText, { color: '#D9534F' }]}>Çıkış Yap</Text>

@@ -2,9 +2,9 @@
 import { Link } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { CaretDown } from 'phosphor-react-native';
+import { CaretDown, Eye, EyeSlash } from 'phosphor-react-native';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { auth, db } from '../../firebaseConfig';
 
@@ -19,6 +19,7 @@ export default function RegisterScreen() {
   const [zodiac, setZodiac] = useState('');
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const styles = useMemo(() => getStyles(colors), [colors]);
 
@@ -46,42 +47,49 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Aramıza Katıl</Text>
-      <Text style={styles.subtitle}>Yeni bir serüvene başla.</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+        <Text style={styles.title}>Aramıza Katıl</Text>
+        <Text style={styles.subtitle}>Yeni bir serüvene başla.</Text>
 
-      <TextInput style={styles.input} placeholder="Kullanıcı Adı" value={username} onChangeText={setUsername} />
-      <TextInput style={styles.input} placeholder="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-      <TextInput style={styles.input} placeholder="Şifre" value={password} onChangeText={setPassword} secureTextEntry />
-
-      <Text style={styles.label}>Doğum Tarihin</Text>
-      <View style={styles.dateContainer}>
-        <TextInput style={[styles.input, styles.dateInput]} placeholder="Gün" value={birthDate.day} onChangeText={(text) => setBirthDate({ ...birthDate, day: text })} keyboardType="number-pad" maxLength={2} />
-        <TextInput style={[styles.input, styles.dateInput]} placeholder="Ay" value={birthDate.month} onChangeText={(text) => setBirthDate({ ...birthDate, month: text })} keyboardType="number-pad" maxLength={2} />
-        <TextInput style={[styles.input, styles.dateInput, { flex: 2 }]} placeholder="Yıl" value={birthDate.year} onChangeText={(text) => setBirthDate({ ...birthDate, year: text })} keyboardType="number-pad" maxLength={4} />
-      </View>
-
-      <Text style={styles.label}>Burcun</Text>
-      <TouchableOpacity style={styles.pickerButton} onPress={() => setModalVisible(true)}>
-        <Text style={styles.pickerText}>{zodiac || 'Burcunu Seç'}</Text>
-        <CaretDown size={20} color={colors.textMuted} />
-      </TouchableOpacity>
-
-      {loading ? (
-        <ActivityIndicator size="large" color={colors.primaryButton} style={{ marginTop: 20 }} />
-      ) : (
-        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-          <Text style={styles.buttonText}>Kayıt Ol</Text>
-        </TouchableOpacity>
-      )}
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Zaten bir hesabın var mı? </Text>
-        <Link href="/(auth)" asChild>
-          <TouchableOpacity>
-            <Text style={styles.linkText}>Giriş Yap</Text>
+        <TextInput style={styles.input} placeholder="Kullanıcı Adı" value={username} onChangeText={setUsername} />
+        <TextInput style={styles.input} placeholder="E-posta" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+        <View style={styles.passwordContainer}>
+          <TextInput style={styles.textInput} placeholder="Şifre" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} />
+          <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+            {showPassword ? <EyeSlash size={24} color={colors.textMuted} /> : <Eye size={24} color={colors.textMuted} />}
           </TouchableOpacity>
-        </Link>
-      </View>
+        </View>
+
+        <Text style={styles.label}>Doğum Tarihin</Text>
+        <View style={styles.dateContainer}>
+          <TextInput style={[styles.boxInput, styles.dateInput]} placeholder="Gün" value={birthDate.day} onChangeText={(text) => setBirthDate({ ...birthDate, day: text })} keyboardType="number-pad" maxLength={2} />
+          <TextInput style={[styles.boxInput, styles.dateInput]} placeholder="Ay" value={birthDate.month} onChangeText={(text) => setBirthDate({ ...birthDate, month: text })} keyboardType="number-pad" maxLength={2} />
+          <TextInput style={[styles.boxInput, styles.dateInput, { flex: 2 }]} placeholder="Yıl" value={birthDate.year} onChangeText={(text) => setBirthDate({ ...birthDate, year: text })} keyboardType="number-pad" maxLength={4} />
+        </View>
+
+        <Text style={styles.label}>Burcun</Text>
+        <TouchableOpacity style={styles.pickerButton} onPress={() => setModalVisible(true)}>
+          <Text style={styles.pickerText}>{zodiac || 'Burcunu Seç'}</Text>
+          <CaretDown size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.primaryButton} style={{ marginTop: 20 }} />
+        ) : (
+          <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+            <Text style={styles.buttonText}>Kayıt Ol</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Zaten bir hesabın var mı? </Text>
+          <Link href="/(auth)" asChild>
+            <TouchableOpacity>
+              <Text style={styles.linkText}>Giriş Yap</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      </ScrollView>
 
       <Modal transparent visible={modalVisible} animationType="fade">
         <View style={styles.modalContainer}>
@@ -108,8 +116,12 @@ const getStyles = (colors: any) => StyleSheet.create({
   subtitle: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.textMuted, textAlign: 'center', marginBottom: 20 },
   label: { fontFamily: 'Nunito-Bold', color: colors.textMuted, alignSelf: 'flex-start', marginLeft: 5, marginBottom: 5, marginTop: 10 },
   input: { width: '100%', backgroundColor: colors.card, paddingVertical: 15, paddingHorizontal: 20, borderRadius: 12, marginBottom: 12, fontFamily: 'Nunito-SemiBold', fontSize: 16, borderWidth: 1, borderColor: '#EAE5D9' },
+  textInput: { flex: 1, height: 55, backgroundColor: 'transparent', paddingHorizontal: 20, fontFamily: 'Nunito-SemiBold', fontSize: 16 },
+  boxInput: { flex: 1, height: 55, backgroundColor: 'transparent', paddingHorizontal: 20, fontFamily: 'Nunito-SemiBold', fontSize: 16 },
   dateContainer: { flexDirection: 'row', gap: 10 },
   dateInput: { flex: 1, textAlign: 'center', paddingHorizontal: 10 },
+  passwordContainer: { flexDirection: 'row', alignItems: 'center', width: '100%', backgroundColor: colors.card, borderRadius: 12, borderWidth: 1, borderColor: '#EAE5D9', marginBottom: 12 },
+  eyeIcon: { padding: 15 },
   pickerButton: { width: '100%', backgroundColor: colors.card, paddingVertical: 15, paddingHorizontal: 20, borderRadius: 12, borderWidth: 1, borderColor: '#EAE5D9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pickerText: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.textDark },
   button: { width: '100%', backgroundColor: colors.primaryButton, padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 20 },
