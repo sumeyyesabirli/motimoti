@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "309702702738-iakndglddh0igudov4fdl88e2jj4rh82.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sumeyyesabirli.motimoti",
+            "certificate_hash": "5a410f79c321060a783232e5bc61800566094d18"
+          }
+        },
+        {
           "client_id": "309702702738-4u1phg54mfbkv6mfd0i5fvc96s30lom3.apps.googleusercontent.com",
           "client_type": 3
         }

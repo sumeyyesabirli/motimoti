@@ -1,22 +1,14 @@
 // app/(auth)/login.tsx
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, NativeModules, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 import { colors } from '../../constants/colors';
 import { auth } from '../../firebaseConfig';
 
-// Client ID'lerini Firebase Konsolu'ndan kopyalayıp girin
-import { useRouter } from 'expo-router';
-
-// Google Sign-In yapılandırması dinamik import ile on-demand yapılacak
-
 export default function LoginScreen() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const hasGoogleNative = useMemo(() => Boolean((NativeModules as any)?.RNGoogleSignin), []);
-
   const isValidEmail = (value: string) => /.+@.+\..+/.test(value);
   const isValidPassword = (value: string) => value.length >= 6;
 
@@ -32,7 +24,6 @@ export default function LoginScreen() {
         return;
       }
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      router.replace('/');
     } catch (error) {
       const code = (error as any)?.code as string | undefined;
       if (code === 'auth/invalid-email') {
@@ -64,7 +55,6 @@ export default function LoginScreen() {
         return;
       }
       await createUserWithEmailAndPassword(auth, email.trim(), password);
-      router.replace('/');
     } catch (error) {
       const code = (error as any)?.code as string | undefined;
       if (code === 'auth/invalid-email') {
@@ -77,20 +67,6 @@ export default function LoginScreen() {
         console.error(error);
         alert('Kayıt olunamadı.');
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const onGoogleButtonPress = async () => {
-    setLoading(true);
-    try {
-      const { signInWithGoogleExpoGo } = await import('../../services/googleExpo');
-      await signInWithGoogleExpoGo();
-      router.replace('/');
-    } catch (error) {
-      console.error(error);
-      alert('Google ile giriş yapılamadı.');
     } finally {
       setLoading(false);
     }
@@ -122,9 +98,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={[styles.button, styles.buttonOutline]} onPress={handleSignUp}>
             <Text style={[styles.buttonText, styles.buttonOutlineText]}>Kayıt Ol</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, { backgroundColor: '#4285F4' }]} onPress={onGoogleButtonPress}>
-            <Text style={styles.buttonText}>Google ile Giriş Yap</Text>
           </TouchableOpacity>
         </>
       )}

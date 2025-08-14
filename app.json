@@ -11,16 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
-      "bundleIdentifier": "com.sumeyyesabirli.motimoti",
-      "infoPlist": {
-        "CFBundleURLTypes": [
-          {
-            "CFBundleURLSchemes": [
-              "com.googleusercontent.apps.309702702738-cessb1jorh50kq6mv4oihbnv8cuf48ui"
-            ]
-          }
-        ]
-      }
+      "bundleIdentifier": "com.sumeyyesabirli.motimoti"
     },
     "android": {
       "adaptiveIcon": {
@@ -46,9 +37,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font",
-      "@react-native-google-signin/google-signin",
-      "expo-web-browser"
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
