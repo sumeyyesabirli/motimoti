@@ -2,17 +2,16 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
-import { Dimensions, Modal, Image as RNImage, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import { PencilSimple, SignOut } from 'phosphor-react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Dimensions, Modal, Image as RNImage, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext'; // useTheme'i import et
-import { db } from '../../firebaseConfig';
+import { useTheme } from '../../context/ThemeContext';
+import { auth, db } from '../../firebaseConfig';
 
 const { width } = Dimensions.get('window');
 
-// Örnek tamamlanmış çiçekler (Veritabanından gelecek)
+// Örnek tamamlanmış çiçekler (mock)
 const collectedFlowers = [
   require('../../assets/flowers/papatya/Papatya(1).gif'),
   require('../../assets/flowers/papatya/Papatya(2).gif'),
@@ -23,82 +22,53 @@ const collectedFlowers = [
   require('../../assets/flowers/papatya/Papatya(7).png'),
 ];
 
-// Papatya serüveninin aşamaları ve görselleri
+// 7 günlük serüven aşamaları
 const stages = [
-  { day: 1, description: "Her şey bu küçük adımla başladı.", image: require('../../assets/flowers/papatya/Papatya(1).gif') },
-  { day: 2, description: "Toprağı yaran o ilk umut ışığı.", image: require('../../assets/flowers/papatya/Papatya(2).gif') },
-  { day: 3, description: "Hayata doğru emin adımlarla uzanıyor.", image: require('../../assets/flowers/papatya/Papatya(3).gif') },
-  { day: 4, description: "Gövdeden çıkan ilk yaşam belirtileri.", image: require('../../assets/flowers/papatya/Papatya(4).png') },
-  { day: 5, description: "Güzelliğini içinde saklayan bir sürpriz.", image: require('../../assets/flowers/papatya/Papatya(5).png') },
-  { day: 6, description: "Dünyaya merhaba demeye çok yakın.", image: require('../../assets/flowers/papatya/Papatya(6).gif') },
-  { day: 7, description: "Tebrikler! Emeğinin karşılığı bu eşsiz güzellik.", image: require('../../assets/flowers/papatya/Papatya(7).png') }
+  { day: 1, description: 'Her şey bu küçük adımla başladı.', image: require('../../assets/flowers/papatya/Papatya(1).gif') },
+  { day: 2, description: 'Toprağı yaran o ilk umut ışığı.', image: require('../../assets/flowers/papatya/Papatya(2).gif') },
+  { day: 3, description: 'Hayata doğru emin adımlarla uzanıyor.', image: require('../../assets/flowers/papatya/Papatya(3).gif') },
+  { day: 4, description: 'Gövdeden çıkan ilk yaşam belirtileri.', image: require('../../assets/flowers/papatya/Papatya(4).png') },
+  { day: 5, description: 'Güzelliğini içinde saklayan bir sürpriz.', image: require('../../assets/flowers/papatya/Papatya(5).png') },
+  { day: 6, description: 'Dünyaya merhaba demeye çok yakın.', image: require('../../assets/flowers/papatya/Papatya(6).gif') },
+  { day: 7, description: 'Tebrikler! Emeğinin karşılığı bu eşsiz güzellik.', image: require('../../assets/flowers/papatya/Papatya(7).png') },
 ];
 
+const calculateAge = (birthDate?: string | null) => {
+  if (!birthDate) return '-';
+  const [day, month, year] = birthDate.split('.').map(Number);
+  if (!day || !month || !year) return '-';
+  const today = new Date();
+  const birth = new Date(year, month - 1, day);
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+};
+
 export default function ProfileScreen() {
-  const { colors, isDark, toggleTheme } = useTheme(); // Tema değiştirme fonksiyonunu al
+  const { colors } = useTheme();
+  const { user } = useAuth();
   const router = useRouter();
-  const { user, signOutUser } = useAuth();
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [showAdventure, setShowAdventure] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
-  const currentStage = stages[currentDay - 1];
-  const [userData, setUserData] = useState<any>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
     const fetchUserData = async () => {
-      try {
-        if (!user) return;
+      if (user) {
         const ref = doc(db, 'users', user.uid);
         const snap = await getDoc(ref);
-        if (isMounted && snap.exists()) {
-          setUserData(snap.data());
-        }
-      } finally {
-        if (isMounted) setLoadingUser(false);
+        if (snap.exists()) setUserData(snap.data());
       }
+      setLoading(false);
     };
     fetchUserData();
-    return () => { isMounted = false; };
   }, [user]);
 
-  // Sola sürükleme ile journal sayfasına git
-  const navigateToJournal = () => {
-    router.replace('/journal');
-  };
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
-  // Sağa sürükleme ile ana sayfaya git
-  const navigateToHome = () => {
-    router.replace('/');
-  };
-
-  const panGesture = Gesture.Pan()
-    .minDistance(20) // Daha yüksek minimum mesafe
-    .maxPointers(1)
-    .activeOffsetX([-15, 15]) // Daha geniş aktif alan
-    .failOffsetY([-30, 30]) // Daha geniş başarısızlık alanı
-    .onStart(() => {
-      'worklet';
-      // Gesture başladığında
-    })
-    .onUpdate((event) => {
-      'worklet';
-      // Visual feedback için kullanılabilir
-    })
-    .onEnd((event) => {
-      'worklet';
-      const threshold = 100; // Daha yüksek eşik
-      const velocity = event.velocityX;
-      const translation = event.translationX;
-      
-      // Daha kesin koşullar
-      if (translation < -threshold && velocity < -500) {
-        runOnJS(navigateToJournal)();
-      } else if (translation > threshold && velocity > 500) {
-        runOnJS(navigateToHome)();
-      }
-    });
-
+  const handleSignOut = () => auth.signOut();
   const handleScroll = (event: any) => {
     const scrollX = event.nativeEvent.contentOffset.x;
     const newDay = Math.round(scrollX / (width - 48)) + 1;
@@ -107,25 +77,35 @@ export default function ProfileScreen() {
     }
   };
 
-  // Stilleri dinamik hale getir
-  const styles = getStyles(colors);
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ActivityIndicator size="large" color={colors.primaryButton} />
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <GestureDetector gesture={panGesture}>
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <RNImage 
-            source={{ uri: 'https://placehold.co/100x100/E07A5F/FFFFFF?text=U&font=nunito' }} 
-            style={styles.avatar} 
+          <RNImage
+            source={{ uri: 'https://placehold.co/100x100/E07A5F/FFFFFF?text=U&font=nunito' }}
+            style={styles.avatar}
           />
           <Text style={styles.name}>{userData?.username || 'Kullanıcı'}</Text>
-          <Text style={styles.level}>
-            {loadingUser ? 'Yükleniyor...' : `${userData?.zodiac ?? 'Burç -'}${userData?.age ? ' • ' + userData.age : ''}`}
-          </Text>
-          <TouchableOpacity style={styles.editButton} onPress={() => router.push('/profile-details')}>
-            <Text style={styles.editButtonText}>Profilimi Düzenle</Text>
-          </TouchableOpacity>
+          <Text style={styles.email}>{user?.email}</Text>
+        </View>
+
+        <View style={styles.infoContainer}>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoValue}>{calculateAge(userData?.birthDate)}</Text>
+            <Text style={styles.infoLabel}>Yaş</Text>
+          </View>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoValue}>{userData?.zodiac || '-'}</Text>
+            <Text style={styles.infoLabel}>Burç</Text>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -136,264 +116,103 @@ export default function ProfileScreen() {
                 <Image source={flowerImage} style={styles.flowerImage} contentFit="contain" />
               </View>
             ))}
-            {/* Boş slotlar */}
-            <View style={[styles.flowerSlot, { backgroundColor: '#EAE5D9' }]} />
-            <View style={[styles.flowerSlot, { backgroundColor: '#EAE5D9' }]} />
           </View>
         </View>
 
         <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.adventureCard}
-            onPress={() => setShowAdventure(true)}
-          >
+          <TouchableOpacity style={styles.adventureCard} onPress={() => setShowAdventure(true)}>
             <Text style={styles.adventureTitle}>Büyüme Serüvenin</Text>
             <Text style={styles.adventureSubtitle}>7 Günlük Papatya Yolculuğu</Text>
             <Text style={styles.adventureButton}>Görüntüle</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ayarlar</Text>
-          <View style={styles.settingsContainer}>
-            <View style={styles.settingItem}>
-              <Text style={styles.settingText}>Huzurlu Gece Modu</Text>
-              <Switch
-                value={isDark}
-                onValueChange={toggleTheme}
-                trackColor={{ false: '#767577', true: colors.primaryButton }}
-                thumbColor={isDark ? '#f4f3f4' : '#f4f3f4'}
-              />
-            </View>
-            <TouchableOpacity style={[styles.settingItem, { justifyContent: 'center' }]} onPress={signOutUser}>
-              <Text style={[styles.settingText, { color: '#E07A5F', textAlign: 'center' }]}>Çıkış Yap</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.button} onPress={() => router.push('/profile-details')}>
+            <PencilSimple size={20} color={colors.textDark} />
+            <Text style={styles.buttonText}>Profili Düzenle</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.button, { backgroundColor: '#FFD6D6' }]} onPress={handleSignOut}>
+            <SignOut size={20} color="#D9534F" />
+            <Text style={[styles.buttonText, { color: '#D9534F' }]}>Çıkış Yap</Text>
+          </TouchableOpacity>
         </View>
-       </ScrollView>
+      </ScrollView>
+      <Modal
+        visible={showAdventure}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <SafeAreaView style={styles.modalSafeArea}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Büyüme Serüvenin</Text>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setShowAdventure(false)}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-       {/* Büyüme Serüveni Modal */}
-       <Modal
-         visible={showAdventure}
-         animationType="slide"
-         presentationStyle="fullScreen"
-       >
-         <SafeAreaView style={styles.modalSafeArea}>
-           <View style={styles.modalContainer}>
-             <View style={styles.modalHeader}>
-               <Text style={styles.modalTitle}>Büyüme Serüvenin</Text>
-               <TouchableOpacity 
-                 style={styles.closeButton}
-                 onPress={() => setShowAdventure(false)}
-               >
-                 <Text style={styles.closeButtonText}>✕</Text>
-               </TouchableOpacity>
-             </View>
-
-             <View style={styles.modalContent}>
-               <Text style={styles.currentDayText}>{currentDay}. Gün</Text>
-               
-               <ScrollView
-                 horizontal
-                 pagingEnabled
-                 showsHorizontalScrollIndicator={false}
-                 onScroll={handleScroll}
-                 scrollEventThrottle={16}
-                 style={styles.scrollView}
-                 decelerationRate="fast"
-               >
-                 {stages.map((stage, index) => (
-                   <View key={`day-${stage.day}`} style={styles.plantContainer}>
-                     <Image
-                       source={stage.image}
-                       style={styles.plantImage}
-                       contentFit="contain"
-                       transition={200}
-                       priority="high"
-                       cachePolicy="memory-disk"
-                       recyclingKey={`papatya-${stage.day}`}
-                     />
-                   </View>
-                 ))}
-               </ScrollView>
-
-               <Text style={styles.descriptionText}>{currentStage.description}</Text>
-             </View>
-           </View>
-         </SafeAreaView>
-       </Modal>
-       </SafeAreaView>
-     </GestureDetector>
+            <View style={styles.modalContent}>
+              <Text style={styles.currentDayText}>{currentDay}. Gün</Text>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                style={styles.scrollView}
+                decelerationRate="fast"
+              >
+                {stages.map((stage) => (
+                  <View key={`day-${stage.day}`} style={styles.plantContainer}>
+                    <Image source={stage.image} style={styles.plantImage} contentFit="contain" />
+                  </View>
+                ))}
+              </ScrollView>
+              <Text style={styles.descriptionText}>{stages[currentDay - 1]?.description}</Text>
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
   );
- }
+}
 
- // Stil fonksiyonunu dosyanın dışına taşı
- const getStyles = (colors: any) => StyleSheet.create({
-   safeArea: { flex: 1, backgroundColor: colors.background },
-   scrollContainer: { paddingBottom: 120, alignItems: 'center' },
-   header: {
-     width: '100%',
-     alignItems: 'center',
-     paddingTop: 60,
-     paddingBottom: 20,
-   },
-   avatar: {
-     width: 100,
-     height: 100,
-     borderRadius: 50,
-     borderWidth: 4,
-     borderColor: colors.card,
-   },
-   name: { fontFamily: 'Nunito-ExtraBold', fontSize: 26, color: colors.textDark, marginTop: 16 },
-   level: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.primaryButton, marginTop: 4 },
-  editButton: {
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  editButtonText: { fontFamily: 'Nunito-Bold', fontSize: 14, color: colors.textDark },
-   section: {
-     width: '100%',
-     paddingHorizontal: 24,
-     marginTop: 30,
-   },
-   sectionTitle: { fontFamily: 'Nunito-Bold', fontSize: 20, color: colors.textDark, marginBottom: 16 },
-   collectionContainer: {
-     backgroundColor: colors.card,
-     borderRadius: 24,
-     padding: 16,
-     flexDirection: 'row',
-     flexWrap: 'wrap', // Birden fazla satıra yayılmasını sağlar
-     justifyContent: 'flex-start',
-     gap: 12,
-   },
-   flowerSlot: {
-     width: 70, // Boyutları ayarla
-     height: 70,
-     borderRadius: 16,
-     backgroundColor: colors.background,
-     justifyContent: 'center',
-     alignItems: 'center',
-     overflow: 'hidden',
-   },
-   flowerImage: {
-     width: '100%',
-     height: '100%',
-   },
-   adventureCard: {
-     backgroundColor: colors.card,
-     borderRadius: 24,
-     padding: 20,
-     alignItems: 'center',
-     shadowColor: colors.shadow,
-     shadowOffset: { width: 0, height: 8 },
-     shadowOpacity: 0.15,
-     shadowRadius: 20,
-     elevation: 10,
-   },
-   adventureTitle: {
-     fontFamily: 'Nunito-Bold',
-     fontSize: 20,
-     color: colors.textDark,
-     marginBottom: 4,
-   },
-   adventureSubtitle: {
-     fontFamily: 'Nunito-Regular',
-     fontSize: 14,
-     color: colors.textMuted,
-     marginBottom: 12,
-   },
-   adventureButton: {
-     fontFamily: 'Nunito-SemiBold',
-     fontSize: 16,
-     color: colors.primaryButton,
-   },
-   settingsContainer: {
-     backgroundColor: colors.card,
-     borderRadius: 24,
-     padding: 16,
-   },
-   settingItem: {
-     flexDirection: 'row',
-     justifyContent: 'space-between',
-     alignItems: 'center',
-     paddingVertical: 12,
-   },
-   settingText: {
-     fontFamily: 'Nunito-SemiBold',
-     fontSize: 16,
-     color: colors.textDark,
-   },
-   modalSafeArea: {
-     flex: 1,
-     backgroundColor: colors.background,
-   },
-   modalContainer: {
-     flex: 1,
-     padding: 24,
-   },
-   modalHeader: {
-     flexDirection: 'row',
-     justifyContent: 'space-between',
-     alignItems: 'center',
-     paddingTop: 20,
-     paddingBottom: 30,
-   },
-   modalTitle: {
-     fontFamily: 'Nunito-ExtraBold',
-     fontSize: 28,
-     color: colors.textDark,
-   },
-   closeButton: {
-     width: 40,
-     height: 40,
-     borderRadius: 20,
-     backgroundColor: colors.card,
-     justifyContent: 'center',
-     alignItems: 'center',
-   },
-   closeButtonText: {
-     fontFamily: 'Nunito-Bold',
-     fontSize: 18,
-     color: colors.textDark,
-   },
-   modalContent: {
-     flex: 1,
-     alignItems: 'center',
-   },
-   currentDayText: {
-     fontFamily: 'Nunito-SemiBold',
-     fontSize: 18,
-     color: colors.textMuted,
-     marginBottom: 20,
-   },
-   scrollView: {
-     flex: 1,
-     width: '100%',
-   },
-   plantContainer: {
-     width: width - 48,
-     height: '100%',
-     justifyContent: 'center',
-     alignItems: 'center',
-   },
-   plantImage: {
-     width: '100%',
-     height: '80%',
-   },
-   descriptionText: {
-     fontFamily: 'Nunito-SemiBold',
-     fontSize: 16,
-     color: colors.textDark,
-     textAlign: 'center',
-     marginTop: 20,
-     minHeight: 40,
-   },
-  });
+const getStyles = (colors: any) => StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  scrollContainer: { paddingBottom: 120, alignItems: 'center' },
+  header: { alignItems: 'center', paddingTop: 60, paddingBottom: 20 },
+  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: colors.card },
+  name: { fontFamily: 'Nunito-ExtraBold', fontSize: 28, color: colors.textDark },
+  email: { fontFamily: 'Nunito-Regular', fontSize: 16, color: colors.textMuted, marginTop: 4 },
+  infoContainer: { flexDirection: 'row', width: '100%', justifyContent: 'space-around', marginBottom: 40 },
+  infoBox: { backgroundColor: colors.card, padding: 20, borderRadius: 16, alignItems: 'center', width: '45%', shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 10, elevation: 5 },
+  infoValue: { fontFamily: 'Nunito-Bold', fontSize: 24, color: colors.textDark },
+  infoLabel: { fontFamily: 'Nunito-SemiBold', fontSize: 14, color: colors.textMuted, marginTop: 4 },
+  section: { width: '100%', paddingHorizontal: 24, marginTop: 30 },
+  sectionTitle: { fontFamily: 'Nunito-Bold', fontSize: 20, color: colors.textDark, marginBottom: 16 },
+  collectionContainer: { backgroundColor: colors.card, borderRadius: 24, padding: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', gap: 12 },
+  flowerSlot: { width: 70, height: 70, borderRadius: 16, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  flowerImage: { width: '100%', height: '100%' },
+  adventureCard: { backgroundColor: colors.card, borderRadius: 24, padding: 20, alignItems: 'center', shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  adventureTitle: { fontFamily: 'Nunito-Bold', fontSize: 20, color: colors.textDark, marginBottom: 4 },
+  adventureSubtitle: { fontFamily: 'Nunito-Regular', fontSize: 14, color: colors.textMuted, marginBottom: 12 },
+  adventureButton: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.primaryButton },
+  buttonContainer: { width: '100%' },
+  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.card, paddingVertical: 15, borderRadius: 12, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 1, shadowRadius: 5, elevation: 3, marginBottom: 12 },
+  buttonText: { fontFamily: 'Nunito-Bold', fontSize: 16, color: colors.textDark, marginLeft: 8 },
+  modalSafeArea: { flex: 1, backgroundColor: colors.background },
+  modalContainer: { flex: 1, padding: 24 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 20, paddingBottom: 30 },
+  modalTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 28, color: colors.textDark },
+  closeButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.card, justifyContent: 'center', alignItems: 'center' },
+  closeButtonText: { fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textDark },
+  modalContent: { flex: 1, alignItems: 'center' },
+  currentDayText: { fontFamily: 'Nunito-SemiBold', fontSize: 18, color: colors.textMuted, marginBottom: 20 },
+  scrollView: { flex: 1, width: '100%' },
+  plantContainer: { width: width - 48, height: '100%', justifyContent: 'center', alignItems: 'center' },
+  plantImage: { width: '100%', height: '80%' },
+  descriptionText: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.textDark, textAlign: 'center', marginTop: 20, minHeight: 40 },
+});
+
+ 
