@@ -11,13 +11,13 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",
     "expo": "~53.0.20",
-    
     "expo-font": "~13.3.2",
-    "expo-secure-store": "^13.0.2",
     "expo-image": "~2.4.0",
     "expo-router": "~5.1.4",
+    "expo-secure-store": "^13.0.2",
     "expo-splash-screen": "~0.30.10",
     "firebase": "^12.1.0",
+    "moti": "^0.30.0",
     "phosphor-react-native": "^3.0.0",
     "react": "19.0.0",
     "react-native": "0.79.5",

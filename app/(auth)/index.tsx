@@ -5,8 +5,9 @@ import * as SecureStore from 'expo-secure-store';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Eye, EyeSlash } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useTheme } from '../../context/ThemeContext';
 import { auth } from '../../firebaseConfig';
 
@@ -14,6 +15,7 @@ export default function LoginScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
+  const { showFeedback } = useFeedback();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,7 +50,7 @@ export default function LoginScreen() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert("Hata", "Lütfen tüm alanları doldurun.");
+      showFeedback({ message: 'Lütfen tüm alanları doldurun.', type: 'error' });
       return;
     }
     setLoading(true);
@@ -64,7 +66,7 @@ export default function LoginScreen() {
         await SecureStore.deleteItemAsync('remember_password');
       }
     } catch (error) {
-      Alert.alert("Giriş Hatası", "E-posta veya şifre hatalı.");
+      showFeedback({ message: 'E-posta veya şifre hatalı.', type: 'error' });
     } finally {
       setLoading(false);
     }

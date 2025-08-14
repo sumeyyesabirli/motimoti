@@ -1,6 +1,6 @@
 // context/ThemeContext.tsx
-import React, { createContext, useContext, useState } from 'react';
-import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { colors } from '../constants/colors';
 
 export const ThemeContext = createContext({
@@ -10,11 +10,26 @@ export const ThemeContext = createContext({
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const colorScheme = useColorScheme(); // Cihazın temasını algıla
-  const [isDark, setIsDark] = useState(colorScheme === 'dark');
+  // Varsayılan: açık tema
+  const [isDark, setIsDark] = useState(false);
+
+  // Uygulama açıldığında kayıtlı tercih varsa yükle
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem('theme_preference');
+        if (saved === 'dark') setIsDark(true);
+        if (saved === 'light') setIsDark(false);
+      } catch {}
+    })();
+  }, []);
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
+    setIsDark(prev => {
+      const next = !prev;
+      AsyncStorage.setItem('theme_preference', next ? 'dark' : 'light');
+      return next;
+    });
   };
 
   const themeColors = isDark ? colors.dark : colors.light;

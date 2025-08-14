@@ -4,13 +4,15 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { CaretDown, Eye, EyeSlash } from 'phosphor-react-native';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useTheme } from '../../context/ThemeContext';
 import { auth, db } from '../../firebaseConfig';
 
 const zodiacSigns = ["Koç", "Boğa", "İkizler", "Yengeç", "Aslan", "Başak", "Terazi", "Akrep", "Yay", "Oğlak", "Kova", "Balık"];
 
 export default function RegisterScreen() {
+  const { showFeedback } = useFeedback();
   const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +27,7 @@ export default function RegisterScreen() {
 
   const handleSignUp = async () => {
     if (!email || !password || !username || !birthDate.day || !birthDate.month || !birthDate.year || !zodiac) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun.');
+      showFeedback({ message: 'Lütfen tüm alanları doldurun.', type: 'error' });
       return;
     }
     setLoading(true);
@@ -38,8 +40,9 @@ export default function RegisterScreen() {
         zodiac,
         email: user.email,
       });
+      showFeedback({ message: 'Başarıyla kayıt oldun!', type: 'success' });
     } catch (error: any) {
-      Alert.alert('Kayıt Hatası', error?.message ?? 'Bilinmeyen hata');
+      showFeedback({ message: 'Kayıt sırasında bir hata oluştu.', type: 'error' });
     } finally {
       setLoading(false);
     }

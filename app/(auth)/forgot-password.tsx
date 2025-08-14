@@ -2,7 +2,8 @@
 import { Link, useRouter } from 'expo-router';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useTheme } from '../../context/ThemeContext';
 import { auth } from '../../firebaseConfig';
 
@@ -11,22 +12,22 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showFeedback } = useFeedback();
 
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const handleResetPassword = async () => {
     if (!email) {
-      Alert.alert('Hata', 'Lütfen e-posta adresinizi girin.');
+      showFeedback({ message: 'Lütfen e-posta adresinizi girin.', type: 'error' });
       return;
     }
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, email);
-      Alert.alert('Başarılı', 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.', [
-        { text: 'Tamam', onPress: () => router.back() },
-      ]);
+      showFeedback({ message: 'Sıfırlama bağlantısı gönderildi.', type: 'success' });
+      router.back();
     } catch (error) {
-      Alert.alert('Hata', 'Bir sorun oluştu. Lütfen e-posta adresinizi kontrol edin.');
+      showFeedback({ message: 'Bir sorun oluştu. Lütfen e-postayı kontrol edin.', type: 'error' });
     } finally {
       setLoading(false);
     }

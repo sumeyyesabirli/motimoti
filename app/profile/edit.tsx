@@ -3,8 +3,9 @@ import { useRouter } from 'expo-router';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { CaretDown, CaretLeft } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useTheme } from '../../context/ThemeContext';
 import { db } from '../../firebaseConfig';
 
@@ -14,6 +15,7 @@ export default function EditProfileScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const router = useRouter();
+  const { showFeedback } = useFeedback();
 
   const [username, setUsername] = useState('');
   const [birthDate, setBirthDate] = useState({ day: '', month: '', year: '' });
@@ -46,7 +48,7 @@ export default function EditProfileScreen() {
   const handleUpdate = async () => {
     if (!user) return;
     if (!username || !birthDate.day || !birthDate.month || !birthDate.year || !zodiac) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun.');
+      showFeedback({ message: 'Lütfen tüm alanları doldurun.', type: 'error' });
       return;
     }
     setLoading(true);
@@ -57,9 +59,10 @@ export default function EditProfileScreen() {
         birthDate: `${birthDate.day}.${birthDate.month}.${birthDate.year}`,
         zodiac,
       });
-      Alert.alert('Başarılı', 'Profilin güncellendi.', [{ text: 'Tamam', onPress: () => router.back() }]);
+      showFeedback({ message: 'Profilin güncellendi.', type: 'success' });
+      router.back();
     } catch (error: any) {
-      Alert.alert('Güncelleme Hatası', error?.message ?? 'Bilinmeyen hata');
+      showFeedback({ message: 'Güncelleme sırasında bir sorun oluştu.', type: 'error' });
     } finally {
       setLoading(false);
     }

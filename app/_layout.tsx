@@ -4,7 +4,10 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Toast } from '../components/Toast';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { FeedbackProvider } from '../context/FeedbackContext';
+import { ThemeProvider } from '../context/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -47,9 +50,14 @@ const InitialLayout = () => {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <InitialLayout />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <FeedbackProvider>
+            <InitialLayout />
+            <Toast />
+          </FeedbackProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
