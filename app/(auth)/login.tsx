@@ -1,7 +1,7 @@
 // app/(auth)/login.tsx
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, NativeModules, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, NativeModules, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity } from 'react-native';
 import { colors } from '../../constants/colors';
 import { auth } from '../../firebaseConfig';
 
@@ -17,14 +17,36 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const hasGoogleNative = useMemo(() => Boolean((NativeModules as any)?.RNGoogleSignin), []);
 
+  const isValidEmail = (value: string) => /.+@.+\..+/.test(value);
+  const isValidPassword = (value: string) => value.length >= 6;
+
   const handleSignIn = async () => {
     setLoading(true);
     try {
+      if (!isValidEmail(email.trim())) {
+        alert('Lütfen geçerli bir e-posta adresi girin.');
+        return;
+      }
+      if (!isValidPassword(password)) {
+        alert('Şifre en az 6 karakter olmalıdır.');
+        return;
+      }
       await signInWithEmailAndPassword(auth, email.trim(), password);
       router.replace('/');
     } catch (error) {
-      console.error(error);
-      alert('Giriş yapılamadı.');
+      const code = (error as any)?.code as string | undefined;
+      if (code === 'auth/invalid-email') {
+        alert('Geçersiz e-posta adresi.');
+      } else if (code === 'auth/invalid-credential') {
+        alert('E-posta veya şifre hatalı.');
+      } else if (code === 'auth/user-not-found') {
+        alert('Kullanıcı bulunamadı.');
+      } else if (code === 'auth/wrong-password') {
+        alert('Şifre yanlış.');
+      } else {
+        console.error(error);
+        alert('Giriş yapılamadı.');
+      }
     } finally {
       setLoading(false);
     }
@@ -33,36 +55,38 @@ export default function LoginScreen() {
   const handleSignUp = async () => {
     setLoading(true);
     try {
+      if (!isValidEmail(email.trim())) {
+        alert('Lütfen geçerli bir e-posta adresi girin.');
+        return;
+      }
+      if (!isValidPassword(password)) {
+        alert('Şifre en az 6 karakter olmalıdır.');
+        return;
+      }
       await createUserWithEmailAndPassword(auth, email.trim(), password);
       router.replace('/');
     } catch (error) {
-      console.error(error);
-      alert('Kayıt olunamadı.');
+      const code = (error as any)?.code as string | undefined;
+      if (code === 'auth/invalid-email') {
+        alert('Geçersiz e-posta adresi.');
+      } else if (code === 'auth/email-already-in-use') {
+        alert('Bu e-posta zaten kullanımda.');
+      } else if (code === 'auth/weak-password') {
+        alert('Şifre çok zayıf (en az 6 karakter).');
+      } else {
+        console.error(error);
+        alert('Kayıt olunamadı.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const onGoogleButtonPress = async () => {
-    if (Platform.OS !== 'android' && Platform.OS !== 'ios') return;
-    if (!hasGoogleNative) {
-      alert('Google ile giriş için Expo Dev Client veya EAS build gereklidir.');
-      return;
-    }
     setLoading(true);
     try {
-      const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
-      GoogleSignin.configure({
-        webClientId: '309702702738-4u1phg54mfbkv6mfd0i5fvc96s30lom3.apps.googleusercontent.com',
-        iosClientId: '309702702738-cessb1jorh50kq6mv4oihbnv8cuf48ui.apps.googleusercontent.com',
-      });
-      // Android'de Play Services kontrolü
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      }
-      const { idToken } = await GoogleSignin.signIn();
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-      await signInWithCredential(auth, googleCredential);
+      const { signInWithGoogleExpoGo } = await import('../../services/googleExpo');
+      await signInWithGoogleExpoGo();
       router.replace('/');
     } catch (error) {
       console.error(error);
