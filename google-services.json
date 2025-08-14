@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "309702702738-7dgsreuqluc1dt65vk9ghcu1g268p44p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sumeyyesabirli.motimoti",
+            "certificate_hash": "a2ac384afe54be58fa24ad511f474c05b6fd1df9"
+          }
+        },
+        {
           "client_id": "309702702738-4u1phg54mfbkv6mfd0i5fvc96s30lom3.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +37,13 @@
             {
               "client_id": "309702702738-4u1phg54mfbkv6mfd0i5fvc96s30lom3.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "309702702738-cessb1jorh50kq6mv4oihbnv8cuf48ui.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.sumeyyesabirli.motimoti"
+              }
             }
           ]
         }
