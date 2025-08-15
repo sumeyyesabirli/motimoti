@@ -18,7 +18,6 @@ export default function AddPostScreen() {
   const [userData, setUserData] = useState({ username: 'Anonim', anonymousName: '' });
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   useEffect(() => {
@@ -27,7 +26,11 @@ export default function AddPostScreen() {
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setUserData(docSnap.data());
+          const data = docSnap.data();
+          setUserData({
+            username: data.username || 'Anonim',
+            anonymousName: data.anonymousName || ''
+          });
         }
       }
     };
@@ -50,8 +53,7 @@ export default function AddPostScreen() {
           const randomAdjective = anonymousAdjectives[Math.floor(Math.random() * anonymousAdjectives.length)];
           const newAnonymousName = `Anonim ${randomAdjective}`;
           
-          // Yeni anonim ismi Firestore'a kaydet
-          const userDocRef = doc(db, "users", user.uid);
+          const userDocRef = doc(db, "users", user!.uid);
           await updateDoc(userDocRef, { anonymousName: newAnonymousName });
           
           authorNameToSave = newAnonymousName;
@@ -60,12 +62,14 @@ export default function AddPostScreen() {
 
       await addDoc(collection(db, "posts"), {
         text: postText,
-        authorId: user.uid,
+        authorId: user!.uid,
         authorName: authorNameToSave,
         createdAt: serverTimestamp(),
+        likeCount: 0,
+        likedBy: [],
       });
       router.back();
-    } catch (error) {
+    } catch (_) {
       Alert.alert("Hata", "Yazınız paylaşılamadı.");
     } finally {
       setLoading(false);
@@ -78,6 +82,12 @@ export default function AddPostScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <CaretLeft size={24} color={colors.textDark} />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.anonymousButton} onPress={() => setIsAnonymous(!isAnonymous)}>
+            <UserCircle size={24} color={isAnonymous ? colors.primaryButton : colors.textMuted} weight={isAnonymous ? 'fill' : 'regular'} />
+            <Text style={[styles.anonymousText, { color: isAnonymous ? colors.primaryButton : colors.textMuted }]}>
+                {isAnonymous ? 'Anonim' : 'Herkese Açık'}
+            </Text>
+        </TouchableOpacity>
         <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
           <Text style={styles.shareButtonText}>Paylaş</Text>
         </TouchableOpacity>
@@ -89,41 +99,62 @@ export default function AddPostScreen() {
         multiline
         value={postText}
         onChangeText={setPostText}
+        autoFocus={true}
       />
       
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.anonymousButton} onPress={() => setIsAnonymous(!isAnonymous)}>
-            <UserCircle size={24} color={isAnonymous ? colors.primaryButton : colors.textMuted} weight={isAnonymous ? 'fill' : 'regular'} />
-            <Text style={[styles.anonymousText, { color: isAnonymous ? colors.primaryButton : colors.textMuted }]}>
-                {isAnonymous ? 'Anonim Olarak Paylaşılacak' : 'Herkese Açık Paylaş'}
-            </Text>
-        </TouchableOpacity>
-      </View>
-
       {loading && <ActivityIndicator size="large" color={colors.primaryButton} />}
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors) => StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 24, paddingBottom: 20 },
-    headerButton: { backgroundColor: colors.card, width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#EAE5D9' },
-    shareButton: { backgroundColor: colors.primaryButton, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20 },
-    shareButtonText: { fontFamily: 'Nunito-Bold', fontSize: 16, color: colors.textLight },
-    input: { flex: 1, padding: 24, fontFamily: 'Nunito-SemiBold', fontSize: 18, color: colors.textDark, textAlignVertical: 'top' },
-    footer: {
-      padding: 24,
-      borderTopWidth: 1,
-      borderTopColor: '#EAE5D9',
+    header: { 
+      flexDirection: 'row', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      paddingTop: 50, 
+      paddingHorizontal: 24, 
+      paddingBottom: 20 
+    },
+    headerButton: { 
+      backgroundColor: colors.card, 
+      width: 44, 
+      height: 44, 
+      borderRadius: 22, 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      borderWidth: 1, 
+      borderColor: '#EAE5D9' 
+    },
+    shareButton: { 
+      backgroundColor: colors.primaryButton, 
+      paddingVertical: 10, 
+      paddingHorizontal: 20, 
+      borderRadius: 20 
+    },
+    shareButtonText: { 
+      fontFamily: 'Nunito-Bold', 
+      fontSize: 16, 
+      color: colors.textLight 
+    },
+    input: { 
+      flex: 1, 
+      padding: 24, 
+      fontFamily: 'Nunito-SemiBold', 
+      fontSize: 18, 
+      color: colors.textDark, 
+      textAlignVertical: 'top' 
     },
     anonymousButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
       backgroundColor: colors.card,
-      padding: 12,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
       borderRadius: 16,
+      borderWidth: 1, 
+      borderColor: '#EAE5D9'
     },
     anonymousText: {
       fontFamily: 'Nunito-Bold',
