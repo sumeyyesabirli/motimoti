@@ -2,8 +2,9 @@
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Onboarding from '../components/Onboarding';
 import { Toast } from '../components/Toast';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { FeedbackProvider } from '../context/FeedbackContext';
@@ -11,13 +12,13 @@ import { ThemeProvider } from '../context/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
-const InitialLayout = () => {
+const InitialLayout = ({ blockRouting }: { blockRouting: boolean }) => {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || blockRouting) return;
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!user && !inAuthGroup) {
@@ -25,7 +26,7 @@ const InitialLayout = () => {
     } else if (user && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [user, isLoading, segments]);
+  }, [user, isLoading, segments, blockRouting]);
 
   const [loaded] = useFonts({
     'Nunito-Regular': require('../assets/fonts/Nunito-Regular.ttf'),
@@ -43,17 +44,20 @@ const InitialLayout = () => {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="profile/edit" />
+      <Stack.Screen name="add-post" />
     </Stack>
   );
 };
 
 export default function RootLayout() {
+  const [onboardingVisible, setOnboardingVisible] = useState(true);
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
           <FeedbackProvider>
-            <InitialLayout />
+            <InitialLayout blockRouting={onboardingVisible} />
+            <Onboarding visible={onboardingVisible} onDismiss={() => setOnboardingVisible(false)} />
             <Toast />
           </FeedbackProvider>
         </AuthProvider>
