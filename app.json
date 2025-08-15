@@ -9,17 +9,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "googleServicesFile": "./GoogleService-Info.plist",
-      "bundleIdentifier": "com.sumeyyesabirli.motimoti"
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "googleServicesFile": "./google-services.json",
-      "package": "com.sumeyyesabirli.motimoti"
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -44,10 +41,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "bcc85d4e-ae0a-4e14-b0dc-2190a3163f4b"
-      }
+      "router": {}
     }
   }
 }
