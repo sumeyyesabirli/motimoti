@@ -13,16 +13,16 @@ const lightColors = {
 };
 
 const darkColors = {
-  background: '#1E1E2E', // Koyu lacivert
-  header: '#E07A5F', // Vurgu rengi aynı kalabilir
-  textDark: '#EAEAEA', // Koyu metin yerine açık metin
+  background: '#1E1E2E',
+  header: '#E07A5F',
+  textDark: '#EAEAEA',
   textLight: '#FFFFFF',
   textMuted: '#A0A0A0',
   primaryButton: '#81B29A',
-  card: '#2D2D44', // Daha açık bir lacivert
+  card: '#2D2D44',
   shadow: 'rgba(0, 0, 0, 0.4)',
-  pot: '#A98467', // Daha koyu saksı
-  soil: '#6F5E4C', // Daha koyu toprak
+  pot: '#A98467',
+  soil: '#6F5E4C',
 };
 
 export const colors = {

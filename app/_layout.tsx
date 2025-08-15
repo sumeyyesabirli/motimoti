@@ -2,9 +2,10 @@
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Onboarding from '../components/Onboarding';
+
+
 import { Toast } from '../components/Toast';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { FeedbackProvider } from '../context/FeedbackContext';
@@ -12,13 +13,13 @@ import { ThemeProvider } from '../context/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
-const InitialLayout = ({ blockRouting }: { blockRouting: boolean }) => {
+const InitialLayout = () => {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading || blockRouting) return;
+    if (isLoading) return;
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!user && !inAuthGroup) {
@@ -26,7 +27,7 @@ const InitialLayout = ({ blockRouting }: { blockRouting: boolean }) => {
     } else if (user && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [user, isLoading, segments, blockRouting]);
+  }, [user, isLoading, segments]);
 
   const [loaded] = useFonts({
     'Nunito-Regular': require('../assets/fonts/Nunito-Regular.ttf'),
@@ -50,14 +51,14 @@ const InitialLayout = ({ blockRouting }: { blockRouting: boolean }) => {
 };
 
 export default function RootLayout() {
-  const [onboardingVisible, setOnboardingVisible] = useState(true);
+
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
           <FeedbackProvider>
-            <InitialLayout blockRouting={onboardingVisible} />
-            <Onboarding visible={onboardingVisible} onDismiss={() => setOnboardingVisible(false)} />
+            <InitialLayout />
             <Toast />
           </FeedbackProvider>
         </AuthProvider>

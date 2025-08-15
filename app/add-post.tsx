@@ -1,14 +1,29 @@
 // app/add-post.tsx
 import { useRouter } from 'expo-router';
 import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { CaretLeft, UserCircle } from 'phosphor-react-native';
+import { CaretLeft } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, SafeAreaView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { db } from '../firebaseConfig';
 
-const anonymousAdjectives = ["Mor", "Yeşil", "Mavi", "Hızlı", "Sakin", "Gizemli", "Mutlu", "Umutlu", "Nazik"];
+// 3 haneli rastgele kod üreten fonksiyon
+const generateAnonymousId = () => {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+
+  const getRandomChar = (charset: string) => charset.charAt(Math.floor(Math.random() * charset.length));
+
+  const patterns = [
+    () => getRandomChar(letters) + getRandomChar(numbers) + getRandomChar(letters),
+    () => getRandomChar(numbers) + getRandomChar(letters) + getRandomChar(numbers),
+    () => getRandomChar(numbers) + getRandomChar(numbers) + getRandomChar(letters),
+  ];
+
+  const selectedPattern = patterns[Math.floor(Math.random() * patterns.length)];
+  return `Anonim-${selectedPattern()}`;
+};
 
 export default function AddPostScreen() {
   const { colors } = useTheme();
@@ -18,6 +33,7 @@ export default function AddPostScreen() {
   const [userData, setUserData] = useState({ username: 'Anonim', anonymousName: '' });
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   useEffect(() => {
@@ -50,8 +66,7 @@ export default function AddPostScreen() {
         if (userData.anonymousName) {
           authorNameToSave = userData.anonymousName;
         } else {
-          const randomAdjective = anonymousAdjectives[Math.floor(Math.random() * anonymousAdjectives.length)];
-          const newAnonymousName = `Anonim ${randomAdjective}`;
+          const newAnonymousName = generateAnonymousId();
           
           const userDocRef = doc(db, "users", user!.uid);
           await updateDoc(userDocRef, { anonymousName: newAnonymousName });
@@ -82,12 +97,7 @@ export default function AddPostScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <CaretLeft size={24} color={colors.textDark} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.anonymousButton} onPress={() => setIsAnonymous(!isAnonymous)}>
-            <UserCircle size={24} color={isAnonymous ? colors.primaryButton : colors.textMuted} weight={isAnonymous ? 'fill' : 'regular'} />
-            <Text style={[styles.anonymousText, { color: isAnonymous ? colors.primaryButton : colors.textMuted }]}>
-                {isAnonymous ? 'Anonim' : 'Herkese Açık'}
-            </Text>
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>İlham Ver</Text>
         <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
           <Text style={styles.shareButtonText}>Paylaş</Text>
         </TouchableOpacity>
@@ -99,9 +109,18 @@ export default function AddPostScreen() {
         multiline
         value={postText}
         onChangeText={setPostText}
-        autoFocus={true}
       />
       
+      <View style={styles.anonymousContainer}>
+        <Text style={styles.anonymousText}>Anonim olarak paylaş</Text>
+        <Switch
+          trackColor={{ false: "#767577", true: colors.primaryButton }}
+          thumbColor={isAnonymous ? colors.card : "#f4f3f4"}
+          onValueChange={() => setIsAnonymous(previousState => !previousState)}
+          value={isAnonymous}
+        />
+      </View>
+
       {loading && <ActivityIndicator size="large" color={colors.primaryButton} />}
     </SafeAreaView>
   );
@@ -109,56 +128,23 @@ export default function AddPostScreen() {
 
 const getStyles = (colors: any) => StyleSheet.create({
     safeArea: { flex: 1, backgroundColor: colors.background },
-    header: { 
-      flexDirection: 'row', 
-      justifyContent: 'space-between', 
-      alignItems: 'center', 
-      paddingTop: 50, 
-      paddingHorizontal: 24, 
-      paddingBottom: 20 
-    },
-    headerButton: { 
-      backgroundColor: colors.card, 
-      width: 44, 
-      height: 44, 
-      borderRadius: 22, 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      borderWidth: 1, 
-      borderColor: '#EAE5D9' 
-    },
-    shareButton: { 
-      backgroundColor: colors.primaryButton, 
-      paddingVertical: 10, 
-      paddingHorizontal: 20, 
-      borderRadius: 20 
-    },
-    shareButtonText: { 
-      fontFamily: 'Nunito-Bold', 
-      fontSize: 16, 
-      color: colors.textLight 
-    },
-    input: { 
-      flex: 1, 
-      padding: 24, 
-      fontFamily: 'Nunito-SemiBold', 
-      fontSize: 18, 
-      color: colors.textDark, 
-      textAlignVertical: 'top' 
-    },
-    anonymousButton: {
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 50, paddingHorizontal: 24, paddingBottom: 20 },
+    headerButton: { backgroundColor: colors.card, width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#EAE5D9' },
+    headerTitle: { fontFamily: 'Nunito-Bold', fontSize: 22, color: colors.textDark },
+    shareButton: { backgroundColor: colors.primaryButton, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 20 },
+    shareButtonText: { fontFamily: 'Nunito-Bold', fontSize: 16, color: colors.textLight },
+    input: { flex: 1, padding: 24, fontFamily: 'Nunito-SemiBold', fontSize: 18, color: colors.textDark, textAlignVertical: 'top' },
+    anonymousContainer: {
       flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      backgroundColor: colors.card,
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: 16,
-      borderWidth: 1, 
-      borderColor: '#EAE5D9'
+      padding: 24,
+      borderTopWidth: 1,
+      borderTopColor: '#EAE5D9',
     },
     anonymousText: {
-      fontFamily: 'Nunito-Bold',
-      fontSize: 14,
-      marginLeft: 8,
+      fontFamily: 'Nunito-SemiBold',
+      fontSize: 16,
+      color: colors.textDark,
     },
 });
