@@ -95,6 +95,96 @@ export default function AddPostScreen() {
     }
   };
 
+  // Test için birden fazla gönderi oluştur
+  const createTestPosts = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true); // Use loading for test posts as well
+      const testTexts = [
+        'Bu bir test gönderisidir. Pagination testi için oluşturuldu.',
+        'İkinci test gönderisi. Daha fazla veri için gerekli.',
+        'Üçüncü test gönderisi. Sayfa sayfa yükleme testi.',
+        'Dördüncü test gönderisi. Scroll sonunda yeni veri yükleme.',
+        'Beşinci test gönderisi. Firebase pagination testi.',
+        'Altıncı test gönderisi. usePagination hook testi.',
+        'Yedinci test gönderisi. PaginatedFlatList component testi.',
+        'Sekizinci test gönderisi. 10 gönderi sonrası yeni sayfa.',
+        'Dokuzuncu test gönderisi. Aşağı çekme ile veri yükleme.',
+        'Onuncu test gönderisi. Otomatik pagination sistemi.',
+        'On birinci test gönderisi. Firestore query optimization.',
+        'On ikinci test gönderisi. React Native performance.',
+        'On üçüncü test gönderisi. FlatList optimization.',
+        'On dördüncü test gönderisi. Memory management.',
+        'On beşinci test gönderisi. State management.',
+        'On altıncı test gönderisi. Hook optimization.',
+        'On yedinci test gönderisi. Component reusability.',
+        'On sekizinci test gönderisi. TypeScript support.',
+        'On dokuzuncu test gönderisi. Error handling.',
+        'Yirminci test gönderisi. Loading states.',
+        'Yirmi birinci test gönderisi. Refresh functionality.',
+        'Yirmi ikinci test gönderisi. End reached handling.',
+        'Yirmi üçüncü test gönderisi. HasMore flag.',
+        'Yirmi dördüncü test gönderisi. LastDoc tracking.',
+        'Yirmi beşinci test gönderisi. Page size management.',
+        'Yirmi altıncı test gönderisi. Query constraints.',
+        'Yirmi yedinci test gönderisi. Order by field.',
+        'Yirmi sekizinci test gönderisi. Direction control.',
+        'Yirmi dokuzuncu test gönderisi. Collection name.',
+        'Otuzuncu test gönderisi. Firebase integration.',
+        'Otuz birinci test gönderisi. Real-time updates.',
+        'Otuz ikinci test gönderisi. Offline support.',
+        'Otuz üçüncü test gönderisi. Data persistence.',
+        'Otuz dördüncü test gönderisi. Cache management.',
+        'Otuz beşinci test gönderisi. Network optimization.',
+        'Otuz altıncı test gönderisi. Bundle size.',
+        'Otuz yedinci test gönderisi. Tree shaking.',
+        'Otuz sekizinci test gönderisi. Code splitting.',
+        'Otuz dokuzuncu test gönderisi. Lazy loading.',
+        'Kırkıncı test gönderisi. Performance monitoring.',
+        'Kırk birinci test gönderisi. Sayfa 5 için gerekli.',
+        'Kırk ikinci test gönderisi. 10\'ar 10\'ar yükleme.',
+        'Kırk üçüncü test gönderisi. Numaralı sayfalama.',
+        'Kırk dördüncü test gönderisi. 1,2,3,4,5 sayfalar.',
+        'Kırk beşinci test gönderisi. Her sayfa 10 gönderi.',
+        'Kırk altıncı test gönderisi. Toplam 50 gönderi.',
+        'Kırk yedinci test gönderisi. Test verisi.',
+        'Kırk sekizinci test gönderisi. Pagination test.',
+        'Kırk dokuzuncu test gönderisi. Son test gönderisi.',
+        'Ellinci test gönderisi. Tamamlandı!'
+      ];
+
+      for (let i = 0; i < testTexts.length; i++) {
+        const postData = {
+          text: testTexts[i],
+          authorId: user.uid,
+          authorName: user.email?.split('@')[0] || 'Test User',
+          createdAt: new Date(Date.now() - i * 60000), // Her gönderi 1 dakika önce
+          likeCount: Math.floor(Math.random() * 10),
+          likedBy: [],
+          isAnonymous: false
+        };
+
+        await addDoc(collection(db, 'posts'), postData);
+        console.log(`Test post ${i + 1} created`);
+      }
+
+      showFeedback({ 
+        message: `${testTexts.length} test gönderisi oluşturuldu!`, 
+        type: 'info' 
+      });
+      
+    } catch (error) {
+      console.error('Error creating test posts:', error);
+      showFeedback({ 
+        message: 'Test gönderileri oluşturulurken hata oluştu', 
+        type: 'error' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -106,6 +196,19 @@ export default function AddPostScreen() {
           <Text style={styles.shareButtonText}>Paylaş</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Test butonu - yukarı taşındı, sadece development'ta göster */}
+      {__DEV__ && (
+        <TouchableOpacity 
+          style={[styles.testButton, loading && styles.testButtonDisabled]} 
+          onPress={createTestPosts}
+          disabled={loading}
+        >
+          <Text style={styles.testButtonText}>
+            {loading ? 'Oluşturuluyor...' : '50 Test Gönderisi Oluştur'}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.anonymousToggleContainer}>
         <View style={styles.anonymousInfo}>
@@ -154,6 +257,16 @@ export default function AddPostScreen() {
           <Text style={styles.loadingText}>Paylaşılıyor...</Text>
         </View>
       )}
+
+      <TouchableOpacity 
+        style={[styles.submitButton, (loading || postText.trim().length < 10) && styles.submitButtonDisabled]} 
+        onPress={handleShare}
+        disabled={loading || postText.trim().length < 10}
+      >
+        <Text style={styles.submitButtonText}>
+          {loading ? 'Paylaşılıyor...' : 'Paylaş'}
+        </Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -241,5 +354,38 @@ const getStyles = (colors: any) => StyleSheet.create({
       fontSize: 16,
       color: colors.textDark,
       marginTop: 16,
+    },
+    submitButton: {
+      backgroundColor: colors.primaryButton,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 20,
+      alignItems: 'center',
+      marginHorizontal: 24,
+      marginBottom: 20,
+    },
+    submitButtonText: {
+      fontFamily: 'Nunito-Bold',
+      fontSize: 16,
+      color: colors.textLight,
+    },
+    submitButtonDisabled: {
+      opacity: 0.6,
+    },
+    testButton: {
+      backgroundColor: '#FF6B6B',
+      padding: 15,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 10,
+      marginHorizontal: 24,
+    },
+    testButtonDisabled: {
+      opacity: 0.6,
+    },
+    testButtonText: {
+      fontFamily: 'Nunito-Bold',
+      color: '#FFFFFF',
+      fontSize: 16,
     },
   });

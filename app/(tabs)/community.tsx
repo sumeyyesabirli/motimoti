@@ -2,7 +2,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Link, useFocusEffect } from 'expo-router';
-import { arrayRemove, arrayUnion, collection, doc, increment, onSnapshot, orderBy, query, updateDoc, deleteDoc } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, doc, increment, updateDoc, deleteDoc } from 'firebase/firestore';
 import { Heart, Plus, Star, PencilSimple, Trash } from 'phosphor-react-native';
 import React, { useMemo, useState, useEffect } from 'react';
 import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Alert, Modal, TextInput } from 'react-native';
@@ -10,12 +10,24 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Eas
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
+import { usePagination } from '../../hooks/usePagination';
 import { db } from '../../firebaseConfig';
+
+// Post type'ını tanımla
+interface Post {
+  id: string;
+  text: string;
+  authorName?: string;
+  authorId?: string;
+  createdAt: any;
+  likedBy?: string[];
+  likeCount?: number;
+}
 
 // Zamanı dinamik olarak formatlayan yardımcı fonksiyon
 const timeAgo = (timestamp: any) => {
   if (!timestamp?.toDate) return 'az önce';
-  return formatDistanceToNow(timestamp.toDate(), { addSuffix: true, locale: tr });
+  return formatDistanceToNow(timestamp.toDate(), { addSuffix: false, locale: tr }) + ' önce';
 };
 
 // Renk alfa değerini ayarlayan yardımcı fonksiyon
@@ -31,7 +43,7 @@ const withAlpha = (color: string, alpha: number): string => {
 };
 
 // Paylaşım kartı için alt timeline tasarımı
-const PostCard = ({ item, colors, onLike, userId, isLast, onDelete, onEdit }: { item: any; colors: any; onLike: any; userId: any; isLast: boolean; onDelete: (id: string) => void; onEdit: (id: string, newText: string) => void }) => {
+const PostCard = ({ item, colors, onLike, userId, isLast, onDelete, onEdit }: { item: Post; colors: any; onLike: any; userId: any; isLast: boolean; onDelete: (id: string) => void; onEdit: (id: string, newText: string) => void }) => {
   const styles = getStyles(colors);
   const isLiked = item.likedBy?.includes(userId);
   const [isEditing, setIsEditing] = useState(false);
@@ -160,9 +172,6 @@ const PostCard = ({ item, colors, onLike, userId, isLast, onDelete, onEdit }: { 
           <Animated.View style={[styles.bottomTimelineDot, pulseStyle]} />
         </View>
       )}
-
-      {/* Düzenleme Bottom Sheet */}
-      {/* Removed as per edit hint */}
     </View>
   );
 };
@@ -171,11 +180,38 @@ export default function CommunityScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
   const { showFeedback } = useFeedback();
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showHeader, setShowHeader] = useState(true);
   const styles = useMemo(() => getStyles(colors), [colors]);
   
+  // Pagination hook'unu kullan
+  const {
+    data: posts,
+    loading,
+    loadingMore,
+    hasMore,
+    currentPage,
+    totalPages,
+    loadInitialData,
+    loadMoreData,
+    refreshData,
+    goToPage
+  } = usePagination<Post>({
+    collectionName: 'posts',
+    orderByField: 'createdAt',
+    orderDirection: 'desc',
+    pageSize: 10 // 20'den 10'a düşürdüm
+  });
+  
+  // State değişikliklerini izle
+  useEffect(() => {
+    console.log('📊 CommunityScreen state güncellendi:', {
+      postsLength: posts.length,
+      currentPage,
+      totalPages,
+      hasMore,
+      loading
+    });
+  }, [posts.length, currentPage, totalPages, hasMore, loading]);
+
   // Header animasyonu için
   const headerHeight = useSharedValue(120);
   const headerOpacity = useSharedValue(1);
@@ -188,26 +224,17 @@ export default function CommunityScreen() {
     };
   });
 
+  // İlk yükleme
   useFocusEffect(
     React.useCallback(() => {
+      console.log('🔍 CommunityScreen useFocusEffect triggered');
+      console.log('👤 User:', user?.uid);
       if (!user) {
-        setLoading(false);
+        console.log('❌ No user, returning');
         return;
       }
-
-      // Firebase'den gerçek zamanlı paylaşımları al
-      const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log('Firestore posts loaded:', postsData.length); // Debug için
-        setPosts(postsData);
-        setLoading(false);
-      }, (error) => {
-        console.error('Firestore error:', error);
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
+      console.log('🚀 Calling loadInitialData...');
+      loadInitialData();
     }, [user])
   );
 
@@ -220,7 +247,6 @@ export default function CommunityScreen() {
         likedBy: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid),
         likeCount: increment(isLiked ? -1 : 1),
       });
-      console.log('Post like updated successfully'); // Debug için
     } catch (error) {
       console.error('Error updating like:', error);
     }
@@ -306,6 +332,18 @@ export default function CommunityScreen() {
     );
   }
 
+  const renderPost = ({ item, index }: { item: Post; index: number }) => (
+    <PostCard 
+      item={item} 
+      colors={colors} 
+      onLike={handleLike} 
+      userId={user.uid} 
+      isLast={index === posts.length - 1} 
+      onDelete={handleDelete} 
+      onEdit={handleEdit} 
+    />
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Animated.View style={[styles.header, headerAnimatedStyle]}>
@@ -313,21 +351,46 @@ export default function CommunityScreen() {
         <Text style={styles.headerSubtitle}>Birbirinize ilham verin</Text>
       </Animated.View>
       
-      {loading ? (
+      {loading && posts.length === 0 ? (
         <ActivityIndicator size="large" color={colors.primaryButton} style={{ flex: 1 }} />
-      ) : posts.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <Text style={styles.noPostsText}>Henüz paylaşım yok</Text>
-          <Text style={styles.noPostsSubtext}>İlk paylaşımı sen yap!</Text>
-        </View>
       ) : (
         <FlatList
           data={posts}
+          renderItem={renderPost}
           keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => <PostCard item={item} colors={colors} onLike={handleLike} userId={user.uid} isLast={index === posts.length - 1} onDelete={handleDelete} onEdit={handleEdit} />}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
+          scrollEventThrottle={16}
+          onRefresh={refreshData}
+          refreshing={loading}
+          ListEmptyComponent={
+            <View style={styles.centerContainer}>
+              <Text style={styles.noPostsText}>Henüz paylaşım yok</Text>
+              <Text style={styles.noPostsSubtext}>İlk paylaşımı sen yap!</Text>
+            </View>
+          }
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              {/* Toplam gönderi sayısı kaldırıldı */}
+            </View>
+          }
+          onEndReached={() => {
+            console.log('📱 FlatList onEndReached tetiklendi, hasMore:', hasMore);
+            if (hasMore && !loading) {
+              console.log('🚀 Sonraki sayfa yükleniyor...');
+              loadMoreData();
+            }
+          }}
+          onEndReachedThreshold={0.1}
+          ListFooterComponent={
+            hasMore ? (
+              <View style={styles.loadingFooter}>
+                <ActivityIndicator size="small" color={colors.primaryButton} />
+                <Text style={styles.loadingText}>Daha fazla yükleniyor...</Text>
+              </View>
+            ) : undefined
+          }
         />
       )}
 
@@ -661,6 +724,101 @@ const getStyles = (colors: any) => {
     },
     inlineEditButtonDisabled: {
       opacity: 0.6,
+    },
+    listHeader: {
+      paddingHorizontal: 16,
+      paddingBottom: 10,
+      paddingTop: 20,
+    },
+    listHeaderText: {
+      fontFamily: 'Nunito-SemiBold',
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    pageNavigation: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      marginTop: 10,
+      paddingHorizontal: 20,
+    },
+    pageButton: {
+      backgroundColor: colors.header,
+      borderRadius: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderWidth: 1,
+      borderColor: colors.textMuted,
+    },
+    pageButtonText: {
+      fontFamily: 'Nunito-SemiBold',
+      fontSize: 14,
+      color: colors.textLight,
+    },
+    pageButtonDisabled: {
+      opacity: 0.6,
+    },
+    pageInfo: {
+      fontFamily: 'Nunito-Regular',
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    pageNumbers: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: 10,
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+    },
+    pageNumberButton: {
+      width: 35,
+      height: 35,
+      borderRadius: 17.5,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginHorizontal: 3,
+      marginVertical: 2,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.textMuted + '30',
+    },
+    pageNumberButtonActive: {
+      backgroundColor: colors.header,
+      borderWidth: 2,
+      borderColor: colors.textLight,
+      shadowColor: colors.header,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    pageNumberButtonText: {
+      fontFamily: 'Nunito-Bold',
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    pageNumberButtonTextActive: {
+      color: colors.textLight,
+      fontFamily: 'Nunito-ExtraBold',
+    },
+    totalPostsText: {
+      fontFamily: 'Nunito-SemiBold',
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    loadingFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 20,
+    },
+    loadingText: {
+      marginLeft: 10,
+      fontFamily: 'Nunito-Regular',
+      fontSize: 14,
+      color: colors.textMuted,
     },
   });
 };
