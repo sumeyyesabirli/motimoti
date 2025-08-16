@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { FeedbackProvider } from '../context/FeedbackContext';
 import { ThemeProvider } from '../context/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -100,16 +101,16 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  if (!loaded) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <AuthProvider>
-          <InitialLayout />
-        </AuthProvider>
+        <FeedbackProvider>
+          <AuthProvider>
+            <InitialLayout />
+          </AuthProvider>
+        </FeedbackProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

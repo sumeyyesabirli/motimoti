@@ -150,7 +150,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     postFooter: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#EAE5D9', paddingTop: 16 },
     actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: 24 },
     actionText: { fontFamily: 'Nunito-Bold', fontSize: 14, marginLeft: 8 },
-    fab: { position: 'absolute', bottom: 100, right: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.header, justifyContent: 'center', alignItems: 'center', shadowColor: colors.header, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 10 },
+    fab: { position: 'absolute', bottom: 140, right: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.header, justifyContent: 'center', alignItems: 'center', shadowColor: colors.header, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 10 },
     centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
     noUserText: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.textMuted, textAlign: 'center' },
     noPostsText: { fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textDark, textAlign: 'center', marginBottom: 8 },
