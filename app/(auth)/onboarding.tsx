@@ -12,8 +12,15 @@ export default function OnboardingScreen() {
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const handleStartJourney = async () => {
-    await AsyncStorage.setItem('hasOnboarded', 'true');
-    router.replace('/(auth)');
+    console.log('Onboarding button clicked!'); // Debug için
+    try {
+      await AsyncStorage.setItem('hasOnboarded', 'true');
+      console.log('hasOnboarded saved as true'); // Debug için
+      console.log('Navigating to auth...'); // Debug için
+      router.push('/(auth)');
+    } catch (error) {
+      console.error('Error in handleStartJourney:', error);
+    }
   };
 
   return (

@@ -53,24 +53,55 @@ export default function CommunityScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Firebase'den gerçek zamanlı paylaşımları al
       const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const postsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log('Firestore posts loaded:', postsData.length); // Debug için
         setPosts(postsData);
         setLoading(false);
+      }, (error) => {
+        console.error('Firestore error:', error);
+        setLoading(false);
       });
+
       return () => unsubscribe();
-    }, [])
+    }, [user])
   );
 
   const handleLike = async (postId: string, isLiked: boolean) => {
     if (!user) return; // Giriş yapmamış kullanıcılar beğenemez
-    const postRef = doc(db, "posts", postId);
-    await updateDoc(postRef, {
-      likedBy: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid),
-      likeCount: increment(isLiked ? -1 : 1),
-    });
+    
+    try {
+      const postRef = doc(db, "posts", postId);
+      await updateDoc(postRef, {
+        likedBy: isLiked ? arrayRemove(user.uid) : arrayUnion(user.uid),
+        likeCount: increment(isLiked ? -1 : 1),
+      });
+      console.log('Post like updated successfully'); // Debug için
+    } catch (error) {
+      console.error('Error updating like:', error);
+    }
   };
+
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Topluluk Alanı</Text>
+          <Text style={styles.headerSubtitle}>Giriş yaparak topluluğa katıl</Text>
+        </View>
+        <View style={styles.centerContainer}>
+          <Text style={styles.noUserText}>Topluluğa katılmak için giriş yapmalısın</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -81,11 +112,16 @@ export default function CommunityScreen() {
       
       {loading ? (
         <ActivityIndicator size="large" color={colors.primaryButton} style={{ flex: 1 }} />
+      ) : posts.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.noPostsText}>Henüz paylaşım yok</Text>
+          <Text style={styles.noPostsSubtext}>İlk paylaşımı sen yap!</Text>
+        </View>
       ) : (
         <FlatList
           data={posts}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PostCard item={item} colors={colors} onLike={handleLike} userId={user?.uid} />}
+          renderItem={({ item }) => <PostCard item={item} colors={colors} onLike={handleLike} userId={user.uid} />}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
@@ -115,4 +151,8 @@ const getStyles = (colors: any) => StyleSheet.create({
     actionButton: { flexDirection: 'row', alignItems: 'center', marginRight: 24 },
     actionText: { fontFamily: 'Nunito-Bold', fontSize: 14, marginLeft: 8 },
     fab: { position: 'absolute', bottom: 100, right: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.header, justifyContent: 'center', alignItems: 'center', shadowColor: colors.header, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 10 },
+    centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
+    noUserText: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.textMuted, textAlign: 'center' },
+    noPostsText: { fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textDark, textAlign: 'center', marginBottom: 8 },
+    noPostsSubtext: { fontFamily: 'Nunito-Regular', fontSize: 14, color: colors.textMuted, textAlign: 'center' },
 });

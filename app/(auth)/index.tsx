@@ -2,19 +2,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Eye, EyeSlash } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useTheme } from '../../context/ThemeContext';
-import { auth } from '../../firebaseConfig';
 
 export default function LoginScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, signIn } = useAuth();
   const { showFeedback } = useFeedback();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,13 +47,19 @@ export default function LoginScreen() {
   }, []);
 
   const handleSignIn = async () => {
+    console.log('handleSignIn called with:', email, password); // Debug için
     if (!email || !password) {
       showFeedback({ message: 'Lütfen tüm alanları doldurun.', type: 'error' });
       return;
     }
+
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      console.log('Calling signIn from AuthContext...'); // Debug için
+      // AuthContext'teki signIn fonksiyonunu kullan
+      await signIn(email, password);
+      console.log('signIn successful!'); // Debug için
+      
       if (rememberMe) {
         await AsyncStorage.setItem('remember_me', 'true');
         await AsyncStorage.setItem('remember_email', email);
@@ -65,8 +69,13 @@ export default function LoginScreen() {
         await AsyncStorage.removeItem('remember_email');
         await SecureStore.deleteItemAsync('remember_password');
       }
+
+      // Giriş başarılı, ana sayfaya yönlendir
+      console.log('Redirecting to tabs...'); // Debug için
+      router.replace('/(tabs)');
     } catch (error) {
-      showFeedback({ message: 'E-posta veya şifre hatalı.', type: 'error' });
+      console.error('SignIn error:', error); // Debug için
+      showFeedback({ message: 'Test modu: Herhangi bir e-posta ve şifre ile giriş yapabilirsin!', type: 'error' });
     } finally {
       setLoading(false);
     }
