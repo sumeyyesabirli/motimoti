@@ -10,19 +10,21 @@ const lightColors = {
   shadow: 'rgba(61, 64, 91, 0.2)',
   pot: '#D4A373',
   soil: '#A98467',
+  border: '#E5E7EB',
 };
 
 const darkColors = {
   background: '#1E1E2E',
-  header: '#E07A5F',
-  textDark: '#EAEAEA',
+  header: '#E07A5F', // Açık temadaki turuncu rengi kullanıyorum
+  textDark: '#F5E0DC', // Çok açık krem
   textLight: '#FFFFFF',
-  textMuted: '#A0A0A0',
-  primaryButton: '#81B29A',
-  card: '#2D2D44',
-  shadow: 'rgba(0, 0, 0, 0.4)',
-  pot: '#A98467',
-  soil: '#6F5E4C',
+  textMuted: '#B4BEFE', // Mavi ton
+  primaryButton: '#81B29A', // Yeşil ton
+  card: '#313244', // Biraz daha açık
+  shadow: 'rgba(0, 0, 0, 0.6)',
+  pot: '#D4A373', // Açık temadaki pot rengi
+  soil: '#A98467', // Açık temadaki soil rengi
+  border: '#4B5563',
 };
 
 export const colors = {

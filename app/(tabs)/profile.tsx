@@ -122,12 +122,16 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Ayarlar</Text>
           <View style={styles.settingsContainer}>
             <View style={styles.settingItem}>
-              <Text style={styles.settingText}>Huzurlu Gece Modu</Text>
+              <View style={styles.settingLeft}>
+                <Text style={styles.settingIcon}>🌙</Text>
+                <Text style={styles.settingText}>Huzurlu Gece Modu</Text>
+              </View>
               <Switch
                 value={isDark}
                 onValueChange={toggleTheme}
-                trackColor={{ false: '#767577', true: colors.primaryButton }}
-                thumbColor={'#f4f3f4'}
+                trackColor={{ false: '#E5E7EB', true: colors.primaryButton }}
+                thumbColor={isDark ? '#FFFFFF' : '#FFFFFF'}
+                ios_backgroundColor="#E5E7EB"
               />
             </View>
             <TouchableOpacity style={[styles.settingItem, { justifyContent: 'center' }]} onPress={signOutUser}>
@@ -242,6 +246,8 @@ const getStyles = (colors: any) => StyleSheet.create({
   settingsContainer: { backgroundColor: colors.card, borderRadius: 24, padding: 16 },
   settingItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
   settingText: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.textDark },
+  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  settingIcon: { fontSize: 20 },
   modalSafeArea: { flex: 1, backgroundColor: colors.background },
   modalContainer: { flex: 1, padding: 24 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 20, paddingBottom: 30 },
