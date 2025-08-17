@@ -23,6 +23,7 @@ interface UsePaginationReturn<T> {
   refreshData: () => Promise<void>;
   resetPagination: () => void;
   goToPage: (pageNumber: number) => Promise<void>;
+  setData: (data: T[]) => void;
 }
 
 export function usePagination<T = DocumentData>({
@@ -331,6 +332,7 @@ export function usePagination<T = DocumentData>({
     loadMoreData,
     refreshData,
     resetPagination,
-    goToPage
+    goToPage,
+    setData
   };
 }

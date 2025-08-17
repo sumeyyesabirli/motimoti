@@ -84,6 +84,8 @@ export default function AddPostScreen() {
         createdAt: serverTimestamp(),
         likeCount: 0,
         likedBy: [],
+        favoriteCount: 0,
+        favoritedBy: [],
       });
       
       showFeedback({ message: 'Paylaşımınız başarıyla eklendi!', type: 'success' });
@@ -162,6 +164,8 @@ export default function AddPostScreen() {
           createdAt: new Date(Date.now() - i * 60000), // Her gönderi 1 dakika önce
           likeCount: Math.floor(Math.random() * 10),
           likedBy: [],
+          favoriteCount: Math.floor(Math.random() * 5),
+          favoritedBy: [],
           isAnonymous: false
         };
 
