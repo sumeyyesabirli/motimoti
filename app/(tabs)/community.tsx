@@ -2,10 +2,10 @@
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Link, useFocusEffect } from 'expo-router';
-import { arrayRemove, arrayUnion, doc, increment, updateDoc, deleteDoc } from 'firebase/firestore';
-import { Heart, Plus, Star, PencilSimple, Trash } from 'phosphor-react-native';
-import React, { useMemo, useState, useEffect } from 'react';
-import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Alert, Modal, TextInput } from 'react-native';
+import { arrayRemove, arrayUnion, doc, increment, updateDoc } from 'firebase/firestore';
+import { Heart, Plus, Star } from 'phosphor-react-native';
+import React, { useMemo, useEffect } from 'react';
+import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, withSpring } from 'react-native-reanimated';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -44,13 +44,11 @@ const withAlpha = (color: string, alpha: number): string => {
   return color;
 };
 
-// Paylaşım kartı için alt timeline tasarımı
-const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, onDelete, onEdit }: { item: Post; colors: any; onLike: any; onFavorite: any; userId: any; isLast: boolean; onDelete: (id: string) => void; onEdit: (id: string, newText: string) => void }) => {
+// Paylaşım kartı - Toplulukta yalnızca etkileşim (beğeni/favori)
+const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: Post; colors: any; onLike: any; onFavorite: any; userId: any; isLast: boolean; }) => {
   const styles = getStyles(colors);
   const isLiked = item.likedBy?.includes(userId);
   const isFavorited = (item.favoritedBy || [])?.includes(userId);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(item.text);
   
   // Debug için log'lar
   console.log('🎴 PostCard render:', { 
@@ -81,14 +79,6 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, onDelete, 
     };
   });
 
-  const handleEdit = () => {
-    if (editText.trim().length < 10) {
-      return;
-    }
-    onEdit(item.id, editText.trim());
-    setIsEditing(false);
-  };
-
   return (
     <View style={styles.postContainer}>
       {/* Post içeriği */}
@@ -104,41 +94,7 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, onDelete, 
             <Text style={styles.postTimestamp}>{timeAgo(item.createdAt)}</Text>
           </View>
         </View>
-        
-        {/* Düzenleme Inline Edit */}
-        {isEditing ? (
-          <View style={styles.inlineEditContainer}>
-            <TextInput
-              style={styles.inlineEditInput}
-              value={editText}
-              onChangeText={setEditText}
-              placeholder="Paylaşımınızı düzenleyin..."
-              multiline={true}
-              textAlignVertical="top"
-              maxLength={500}
-            />
-            <View style={styles.inlineEditButtons}>
-              <TouchableOpacity 
-                style={styles.inlineEditButtonCancel}
-                onPress={() => {
-                  setIsEditing(false);
-                  setEditText(item.text);
-                }}
-              >
-                <Text style={styles.inlineEditButtonText}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.inlineEditButtonSave, editText.trim().length < 10 && styles.inlineEditButtonDisabled]}
-                onPress={handleEdit}
-                disabled={editText.trim().length < 10}
-              >
-                <Text style={styles.inlineEditButtonText}>Kaydet</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <Text style={styles.postText}>{item.text}</Text>
-        )}
+        <Text style={styles.postText}>{item.text}</Text>
         
         <View style={styles.postFooter}>
                      <TouchableOpacity 
@@ -163,26 +119,6 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, onDelete, 
              </Text>
            </TouchableOpacity>
 
-          {/* Sadece post sahibi görebilir */}
-          {item.authorId === userId && (
-            <>
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={() => setIsEditing(true)}
-              >
-                <PencilSimple size={16} color={colors.textMuted} />
-                <Text style={styles.actionText}>Düzenle</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={() => onDelete(item.id)}
-              >
-                <Trash size={16} color={colors.textMuted} />
-                <Text style={styles.actionText}>Sil</Text>
-              </TouchableOpacity>
-            </>
-          )}
         </View>
       </View>
       
@@ -436,42 +372,7 @@ export default function CommunityScreen() {
     }
   };
 
-  const handleDelete = async (postId: string) => {
-    Alert.alert(
-      'Paylaşımı Sil',
-      'Bu paylaşımı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
-      [
-        { text: 'İptal', style: 'cancel' },
-        { 
-          text: 'Sil', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, "posts", postId));
-              showFeedback({ message: 'Paylaşım başarıyla silindi!', type: 'info' });
-            } catch (error) {
-              console.error('Error deleting post:', error);
-              showFeedback({ message: 'Paylaşım silinirken hata oluştu.', type: 'error' });
-            }
-          }
-        }
-      ]
-    );
-  };
-
-  const handleEdit = async (postId: string, newText: string) => {
-    try {
-      const postRef = doc(db, "posts", postId);
-      await updateDoc(postRef, {
-        text: newText,
-        updatedAt: new Date(),
-      });
-      showFeedback({ message: 'Paylaşım başarıyla güncellendi!', type: 'info' });
-    } catch (error) {
-      console.error('Error updating post:', error);
-      showFeedback({ message: 'Paylaşım güncellenirken hata oluştu.', type: 'error' });
-    }
-  };
+  // Toplulukta düzenleme/silme yok
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -523,9 +424,7 @@ export default function CommunityScreen() {
       onLike={handleLike} 
       onFavorite={handleFavorite}
       userId={user.uid} 
-      isLast={index === posts.length - 1} 
-      onDelete={handleDelete} 
-      onEdit={handleEdit} 
+      isLast={index === posts.length - 1}
     />
   );
 

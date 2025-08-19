@@ -1,16 +1,17 @@
 // app/(tabs)/profile.tsx
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, FlatList, Platform } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, FlatList, Platform, Alert, Modal, TextInput } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebaseConfig';
-import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import { SignOut, PencilSimple, User as UserIcon, Heart, Star, Note, UserCircle } from 'phosphor-react-native';
+import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { SignOut, PencilSimple, User as UserIcon, Heart, Star, Note, UserCircle, Trash } from 'phosphor-react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { useResponsive, useSafeArea, spacing, fontSizes, getPlatformShadow, borderRadius } from '../../hooks/useResponsive';
 
 // Profildeki küçük yazı kartları
-const ProfilePostCard = ({ item, colors }: { item: any; colors: any }) => {
+const ProfilePostCard = ({ item, colors, onEdit, onDelete }: { item: any; colors: any; onEdit: (id: string, currentText: string) => void; onDelete: (id: string) => void; }) => {
   const isAnonymous = typeof item?.authorName === 'string' && item.authorName.startsWith('Anonim');
   
   return (
@@ -43,6 +44,18 @@ const ProfilePostCard = ({ item, colors }: { item: any; colors: any }) => {
         color: colors.textDark,
         lineHeight: 24,
       }} numberOfLines={4}>{item.text}</Text>
+
+      {/* Düzenle / Sil eylemleri */}
+      <View style={{ flexDirection: 'row', marginTop: 12 }}>
+        <TouchableOpacity onPress={() => onEdit(item.id, item.text)} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+          <PencilSimple size={16} color={colors.textMuted} />
+          <Text style={{ fontFamily: 'Nunito-SemiBold', fontSize: 12, marginLeft: 6, color: colors.textMuted }}>Düzenle</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => onDelete(item.id)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Trash size={16} color={colors.textMuted} />
+          <Text style={{ fontFamily: 'Nunito-SemiBold', fontSize: 12, marginLeft: 6, color: colors.textMuted }}>Sil</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -89,6 +102,7 @@ const StatCard = ({ icon: Icon, value, label, colors, isActive = false }: { icon
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { user, signOutUser } = useAuth();
+  const { showFeedback, showConfirm } = useFeedback();
   const { top: safeTop, bottom: safeBottom } = useSafeArea();
   const { isSmallDevice, isTablet } = useResponsive();
   
@@ -96,6 +110,8 @@ export default function ProfileScreen() {
   const [posts, setPosts] = useState<any[]>([]);
   const [stats, setStats] = useState({ postCount: 0, likeCount: 0, favoriteCount: 0 });
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState<string>('');
 
   const styles = useMemo(() => getStyles(colors, safeTop, safeBottom, isSmallDevice, isTablet), [colors, safeTop, safeBottom, isSmallDevice, isTablet]);
   
@@ -154,7 +170,26 @@ export default function ProfileScreen() {
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ProfilePostCard item={item} colors={colors} />}
+        renderItem={({ item }) => (
+          <ProfilePostCard 
+            item={item} 
+            colors={colors} 
+            onEdit={(id, currentText) => {
+              setEditingId(id);
+              setEditingText(currentText);
+            }}
+            onDelete={async (id) => {
+              const ok = await showConfirm({ title: 'Paylaşımı Sil', message: 'Silmek istediğinize emin misiniz?', confirmText: 'Sil', cancelText: 'İptal', type: 'info' });
+              if (!ok) return;
+              try {
+                await deleteDoc(doc(db, 'posts', id));
+                showFeedback({ message: 'Paylaşım silindi', type: 'info' });
+              } catch (e) {
+                showFeedback({ message: 'Silme sırasında hata oluştu', type: 'error' });
+              }
+            }}
+          />
+        )}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 24 }}
       />
@@ -211,6 +246,51 @@ export default function ProfileScreen() {
         <SignOut size={isSmallDevice ? 18 : 20} color="#D9534F" />
         <Text style={styles.signOutText}>Çıkış Yap</Text>
       </TouchableOpacity>
+
+      {/* Düzenleme Modalı */}
+      <Modal
+        visible={!!editingId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingId(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: '90%', maxWidth: 420, backgroundColor: colors.card, borderRadius: 16, padding: 20 }}>
+            <Text style={{ fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textDark, marginBottom: 12 }}>Paylaşımı Düzenle</Text>
+            <TextInput
+              value={editingText}
+              onChangeText={setEditingText}
+              placeholder="Metni güncelle..."
+              multiline
+              textAlignVertical="top"
+              style={{ minHeight: 120, borderWidth: 1, borderColor: colors.textMuted + '40', borderRadius: 12, padding: 12, color: colors.textDark, fontFamily: 'Nunito-Regular' }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
+              <TouchableOpacity onPress={() => setEditingId(null)} style={{ paddingVertical: 10, paddingHorizontal: 16, marginRight: 10 }}>
+                <Text style={{ fontFamily: 'Nunito-SemiBold', color: colors.textMuted }}>İptal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!editingId) return;
+                  const trimmed = editingText.trim();
+                  if (trimmed.length === 0) { setEditingId(null); return; }
+                  try {
+                    await updateDoc(doc(db, 'posts', editingId), { text: trimmed, updatedAt: new Date() });
+                    showFeedback({ message: 'Paylaşım güncellendi', type: 'success' });
+                  } catch (e) {
+                    showFeedback({ message: 'Güncelleme sırasında hata oluştu', type: 'error' });
+                  } finally {
+                    setEditingId(null);
+                  }
+                }}
+                style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: colors.header, borderRadius: 10 }}
+              >
+                <Text style={{ fontFamily: 'Nunito-Bold', color: colors.textLight }}>Kaydet</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
