@@ -9,6 +9,7 @@ import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, 
 import { SignOut, PencilSimple, User as UserIcon, Heart, Star, Note, UserCircle, Trash } from 'phosphor-react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { useResponsive, useSafeArea, spacing, fontSizes, getPlatformShadow, borderRadius } from '../../hooks/useResponsive';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 // Profildeki küçük yazı kartları
 const ProfilePostCard = ({ item, colors, onEdit, onDelete }: { item: any; colors: any; onEdit: (id: string, currentText: string) => void; onDelete: (id: string) => void; }) => {
@@ -112,6 +113,8 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string>('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<any>(null);
 
   const styles = useMemo(() => getStyles(colors, safeTop, safeBottom, isSmallDevice, isTablet), [colors, safeTop, safeBottom, isSmallDevice, isTablet]);
   
@@ -178,15 +181,9 @@ export default function ProfileScreen() {
               setEditingId(id);
               setEditingText(currentText);
             }}
-            onDelete={async (id) => {
-              const ok = await showConfirm({ title: 'Paylaşımı Sil', message: 'Silmek istediğinize emin misiniz?', confirmText: 'Sil', cancelText: 'İptal', type: 'info' });
-              if (!ok) return;
-              try {
-                await deleteDoc(doc(db, 'posts', id));
-                showFeedback({ message: 'Paylaşım silindi', type: 'info' });
-              } catch (e) {
-                showFeedback({ message: 'Silme sırasında hata oluştu', type: 'error' });
-              }
+            onDelete={(id) => {
+              setPostToDelete(item);
+              setDeleteModalVisible(true);
             }}
           />
         )}
@@ -195,6 +192,20 @@ export default function ProfileScreen() {
       />
     );
   };
+
+  const handleDelete = useCallback(async () => {
+    if (!postToDelete) return;
+    
+    try {
+      await deleteDoc(doc(db, 'posts', postToDelete.id));
+      showFeedback({ message: 'Paylaşım başarıyla silindi!', type: 'success' });
+      setDeleteModalVisible(false);
+      setPostToDelete(null);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      showFeedback({ message: 'Paylaşım silinirken hata oluştu!', type: 'error' });
+    }
+  }, [postToDelete, showFeedback]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -291,6 +302,20 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Silme Onay Modalı - Ağaç dışında */}
+      <ConfirmDeleteModal
+        visible={deleteModalVisible}
+        title="Paylaşımı Sil"
+        message="Silmek istediğinize emin misiniz?"
+        confirmText="SİL"
+        cancelText="İPTAL"
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setDeleteModalVisible(false);
+          setPostToDelete(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
