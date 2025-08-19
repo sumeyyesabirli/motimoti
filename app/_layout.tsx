@@ -37,11 +37,15 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
   const segments = useSegments();
   const router = useRouter();
 
-  // AsyncStorage'dan onboarding durumunu kontrol et
+  // AsyncStorage'dan onboarding ve auth durumunu kontrol et
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
+    const checkStatus = async () => {
       try {
-        const onboarded = await AsyncStorage.getItem('hasOnboarded');
+        const [onboarded, hasLoggedIn] = await Promise.all([
+          AsyncStorage.getItem('hasOnboarded'),
+          AsyncStorage.getItem('hasLoggedIn')
+        ]);
+        
         setHasOnboarded(onboarded === 'true');
         setIsLoading(false);
       } catch (error) {
@@ -50,7 +54,7 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       }
     };
-    checkOnboardingStatus();
+    checkStatus();
   }, []);
 
   useEffect(() => {
@@ -60,6 +64,7 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[1] === 'onboarding';
+    const inTabs = segments[0] === '(tabs)';
 
     // Onboarding tamamlanmamışsa her zaman onboarding'e git
     if (!hasOnboarded) {
@@ -68,11 +73,29 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
         router.replace('/(auth)/onboarding');
       }
     } else {
-      // Onboarding tamamlandıysa ve auth sayfasında değilsek, auth'a git
-      if (!inAuthGroup) {
-        setHasNavigated(true);
-        router.replace('/(auth)');
-      }
+      // Onboarding tamamlandıysa, daha önce giriş yapıp yapmadığını kontrol et
+      const checkPreviousLogin = async () => {
+        try {
+          const hasLoggedIn = await AsyncStorage.getItem('hasLoggedIn');
+          if (hasLoggedIn === 'true') {
+            // Daha önce giriş yapmışsa direkt ana uygulamaya git
+            if (!inTabs) {
+              setHasNavigated(true);
+              router.replace('/(tabs)');
+            }
+          } else {
+            // Hiç giriş yapmamışsa login sayfasına git
+            if (!inAuthGroup) {
+              setHasNavigated(true);
+              router.replace('/(auth)');
+            }
+          }
+        } catch (error) {
+          console.error('Error checking login status:', error);
+        }
+      };
+      
+      checkPreviousLogin();
     }
   }, [isLoading, hasOnboarded, segments, router, hasNavigated]);
 
@@ -84,8 +107,14 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
         if (onboarded === 'true' && hasOnboarded === false) {
           setHasOnboarded(true);
           setHasNavigated(false);
-          // Onboarding tamamlandığında auth sayfasına git
-          router.replace('/(auth)');
+          
+          // Onboarding tamamlandığında daha önce giriş yapıp yapmadığını kontrol et
+          const hasLoggedIn = await AsyncStorage.getItem('hasLoggedIn');
+          if (hasLoggedIn === 'true') {
+            router.replace('/(tabs)');
+          } else {
+            router.replace('/(auth)');
+          }
         }
       } catch (error) {
         console.error('Error checking onboarding change:', error);
