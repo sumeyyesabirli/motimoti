@@ -8,6 +8,7 @@ export default {
     orientation: "portrait",
     icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
+    scheme: "motimoti",
     splash: {
       image: "./assets/splash.png",
       resizeMode: "contain",
@@ -29,17 +30,6 @@ export default {
     },
     web: {
       favicon: "./assets/favicon.png"
-    },
-    extra: {
-      // Firebase configuration from environment variables
-      firebaseApiKeyIos: process.env.FIREBASE_API_KEY_IOS,
-      firebaseApiKeyAndroid: process.env.FIREBASE_API_KEY_ANDROID,
-      firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
-      firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
-      firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-      firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-      firebaseAppIdIos: process.env.FIREBASE_APP_ID_IOS,
-      firebaseAppIdAndroid: process.env.FIREBASE_APP_ID_ANDROID,
     },
     plugins: [
       // Firebase plugins can be added here if needed

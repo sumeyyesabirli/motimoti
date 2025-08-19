@@ -40,8 +40,7 @@ yarn-error.*
 # Firebase configuration files (SECURITY: Never commit these!)
 google-services.json
 GoogleService-Info.plist
-firebaseConfig.ts
-firebaseConfig.js
+# firebaseConfig.ts  # Geçici olarak yorum satırı yapıldı
 
 # API keys and secrets
 **/secrets/
