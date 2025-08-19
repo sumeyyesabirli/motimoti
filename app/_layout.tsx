@@ -33,7 +33,7 @@ const StatusBarBackground = () => {
 const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
-  const [hasNavigated, setHasNavigated] = useState(false); // Navigation flag ekledim
+  const [hasNavigated, setHasNavigated] = useState(false);
   const segments = useSegments();
   const router = useRouter();
 
@@ -41,15 +41,13 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       try {
-        // Debug için zorla sıfırla
-        await AsyncStorage.removeItem('hasOnboarded');
-        
         const onboarded = await AsyncStorage.getItem('hasOnboarded');
         setHasOnboarded(onboarded === 'true');
         setIsLoading(false);
       } catch (error) {
         console.error('AsyncStorage error:', error);
         setHasOnboarded(false);
+        setIsLoading(false);
       }
     };
     checkOnboardingStatus();
@@ -63,16 +61,16 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[1] === 'onboarding';
 
-    // Her zaman onboarding ile başla
+    // Onboarding tamamlanmamışsa her zaman onboarding'e git
     if (!hasOnboarded) {
       if (!inOnboarding) {
-        setHasNavigated(true); // Navigation flag'i set et
+        setHasNavigated(true);
         router.replace('/(auth)/onboarding');
       }
     } else {
-      // Onboarding tamamlandıysa auth sayfasına yönlendir
+      // Onboarding tamamlandıysa ve auth sayfasında değilsek, auth'a git
       if (!inAuthGroup) {
-        setHasNavigated(true); // Navigation flag'i set et
+        setHasNavigated(true);
         router.replace('/(auth)');
       }
     }
@@ -85,8 +83,8 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
         const onboarded = await AsyncStorage.getItem('hasOnboarded');
         if (onboarded === 'true' && hasOnboarded === false) {
           setHasOnboarded(true);
-          setHasNavigated(false); // Navigation flag'i reset et
-          // Hemen yönlendirme yap
+          setHasNavigated(false);
+          // Onboarding tamamlandığında auth sayfasına git
           router.replace('/(auth)');
         }
       } catch (error) {
@@ -94,12 +92,12 @@ const OnboardingWrapper = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    const interval = setInterval(checkOnboardingChange, 100); // Her 100ms kontrol et (daha hızlı)
+    const interval = setInterval(checkOnboardingChange, 100);
     return () => clearInterval(interval);
   }, [hasOnboarded, router]);
 
   if (isLoading) {
-    return null; // Loading sırasında hiçbir şey gösterme
+    return null;
   }
 
   return <>{children}</>;

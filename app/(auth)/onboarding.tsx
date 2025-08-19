@@ -5,17 +5,26 @@ import LottieView from 'lottie-react-native';
 import React, { useMemo } from 'react';
 import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function OnboardingScreen() {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const router = useRouter();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const handleStartJourney = async () => {
     try {
+      // Onboarding'i tamamlandı olarak işaretle
       await AsyncStorage.setItem('hasOnboarded', 'true');
-      // router.push yerine router.replace kullan
-      router.replace('/(auth)');
+      
+      // Kullanıcı zaten giriş yapmışsa direkt ana uygulamaya git
+      if (user) {
+        router.replace('/(tabs)');
+      } else {
+        // Kullanıcı giriş yapmamışsa login sayfasına git
+        router.replace('/(auth)');
+      }
     } catch (error) {
       console.error('Error in handleStartJourney:', error);
     }
@@ -42,7 +51,9 @@ export default function OnboardingScreen() {
       </View>
 
       <TouchableOpacity style={styles.button} onPress={handleStartJourney}>
-        <Text style={styles.buttonText}>Serüvene Başla</Text>
+        <Text style={styles.buttonText}>
+          {user ? 'Ana Sayfaya Git' : 'Serüvene Başla'}
+        </Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
