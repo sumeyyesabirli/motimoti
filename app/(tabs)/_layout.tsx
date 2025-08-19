@@ -70,7 +70,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
 
   return (
     // Sistem tuşları için 'bottom' boşluğunu ekleyerek üst üste binmeyi engelliyoruz
-    <View style={[styles.tabBarContainer, { height: TAB_BAR_HEIGHT + bottom, paddingBottom: bottom }]}>
+    <View style={[styles.tabBarContainer, { height: TAB_BAR_HEIGHT + bottom, paddingBottom: bottom, backgroundColor: colors.background }]}>
       <Svg width={width} height={TAB_BAR_HEIGHT} style={StyleSheet.absoluteFillObject}>
         <AnimatedPath fill={colors.card} animatedProps={animatedPathStyle} />
       </Svg>

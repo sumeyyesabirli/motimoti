@@ -1,39 +1,87 @@
 // app/(tabs)/profile.tsx
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, FlatList, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebaseConfig';
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { SignOut, PencilSimple, User as UserIcon, Heart, Star, Note, UserCircle } from 'phosphor-react-native';
 import { Link, useFocusEffect } from 'expo-router';
+import { useResponsive, useSafeArea, spacing, fontSizes, getPlatformShadow, borderRadius } from '../../hooks/useResponsive';
 
 // Profildeki küçük yazı kartları
 const ProfilePostCard = ({ item, colors }: { item: any; colors: any }) => {
-  const styles = getStyles(colors);
   const isAnonymous = typeof item?.authorName === 'string' && item.authorName.startsWith('Anonim');
   
   return (
-    <View style={styles.postCard}>
+    <View style={{
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 18,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.textMuted + '22',
+    }}>
       {isAnonymous && (
-        <View style={styles.anonymousIndicator}>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 8,
+        }}>
           <UserCircle size={16} color={colors.textMuted} />
-          <Text style={styles.anonymousText}>Anonim Paylaşım</Text>
-          </View>
+          <Text style={{
+            fontFamily: 'Nunito-SemiBold',
+            fontSize: 12,
+            color: colors.textMuted,
+            marginLeft: 6,
+          }}>Anonim Paylaşım</Text>
+        </View>
       )}
-      <Text style={styles.postText} numberOfLines={4}>{item.text}</Text>
-          </View>
+      <Text style={{
+        fontFamily: 'Nunito-Regular',
+        fontSize: 16,
+        color: colors.textDark,
+        lineHeight: 24,
+      }} numberOfLines={4}>{item.text}</Text>
+    </View>
   );
 };
 
 // İstatistikleri gösteren kartlar
-const StatCard = ({ icon: Icon, value, label, colors }: { icon: any; value: number; label: string; colors: any }) => {
-  const styles = getStyles(colors);
+const StatCard = ({ icon: Icon, value, label, colors, isActive = false }: { icon: any; value: number; label: string; colors: any; isActive?: boolean }) => {
   return (
-    <View style={styles.statCard}>
-      <Icon size={24} color={colors.primaryButton} weight="fill" />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={{
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 12,
+      backgroundColor: isActive ? colors.primaryButton + '20' : 'transparent',
+      borderRadius: 16,
+      marginHorizontal: 4,
+    }}>
+      <View style={{
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: isActive ? colors.primaryButton : colors.textMuted + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+      }}>
+        <Icon size={18} color={isActive ? colors.primaryButton : colors.textMuted} weight="fill" />
+      </View>
+      <Text style={{
+        fontFamily: 'Nunito-ExtraBold',
+        fontSize: 16,
+        color: isActive ? colors.primaryButton : colors.textDark,
+        marginBottom: 4,
+      }}>{value}</Text>
+      <Text style={{
+        fontFamily: 'Nunito-Regular',
+        fontSize: 10,
+        color: isActive ? colors.primaryButton : colors.textMuted,
+        textAlign: 'center',
+      }}>{label}</Text>
     </View>
   );
 };
@@ -41,19 +89,22 @@ const StatCard = ({ icon: Icon, value, label, colors }: { icon: any; value: numb
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { user, signOutUser } = useAuth();
+  const { top: safeTop, bottom: safeBottom } = useSafeArea();
+  const { isSmallDevice, isTablet } = useResponsive();
+  
   const [userData, setUserData] = useState<any | null>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [stats, setStats] = useState({ postCount: 0, likeCount: 0, favoriteCount: 0 });
   const [loading, setLoading] = useState(true);
 
-  const styles = useMemo(() => getStyles(colors), [colors]);
+  const styles = useMemo(() => getStyles(colors, safeTop, safeBottom, isSmallDevice, isTablet), [colors, safeTop, safeBottom, isSmallDevice, isTablet]);
   
   useFocusEffect(
     useCallback(() => {
-    if (!user) return;
-    
-    setLoading(true);
+      if (!user) return;
       
+      setLoading(true);
+        
       const fetchAllData = async () => {
         const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
@@ -69,7 +120,7 @@ export default function ProfileScreen() {
         const favoritedPostsQuery = query(collection(db, 'posts'), where('favoritedBy', 'array-contains', user.uid));
         const favoritedPostsSnapshot = await getDocs(favoritedPostsQuery);
       
-      setStats({
+        setStats({
           postCount: myPostsSnapshot.size,
           likeCount: totalLikes,
           favoriteCount: favoritedPostsSnapshot.size,
@@ -105,99 +156,140 @@ export default function ProfileScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ProfilePostCard item={item} colors={colors} />}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 24 }}
       />
     );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
-              <View style={styles.avatar}>
-          <UserIcon size={40} color={colors.header} weight="fill" />
-              </View>
-        <View>
+      <View style={styles.header}>
+        <View style={styles.avatar}>
+          <UserIcon size={isSmallDevice ? 32 : 40} color={colors.header} weight="fill" />
+        </View>
+        <View style={styles.userInfo}>
           <Text style={styles.name}>{userData?.username || 'Kullanıcı'}</Text>
           <Text style={styles.email}>{user?.email}</Text>
-            </View>
+        </View>
         <Link href="/profile/edit" asChild>
           <TouchableOpacity style={styles.editButton}>
-            <PencilSimple size={20} color={colors.textDark} />
+            <PencilSimple size={isSmallDevice ? 18 : 20} color={colors.textDark} />
           </TouchableOpacity>
         </Link>
-          </View>
+      </View>
 
-          <View style={styles.statsContainer}>
-        <StatCard icon={Note} value={stats.postCount} label="Yazı" colors={colors} />
-        <StatCard icon={Heart} value={stats.likeCount} label="Beğeni" colors={colors} />
-        <StatCard icon={Star} value={stats.favoriteCount} label="Favori" colors={colors} />
-            </View>
-            
+      <View style={styles.statsContainer}>
+        <StatCard 
+          icon={Note} 
+          value={stats.postCount} 
+          label="Yazı" 
+          colors={colors} 
+          isActive={stats.postCount >= Math.max(stats.postCount, stats.likeCount, stats.favoriteCount)}
+        />
+        <StatCard 
+          icon={Heart} 
+          value={stats.likeCount} 
+          label="Beğeni" 
+          colors={colors} 
+          isActive={stats.likeCount >= Math.max(stats.postCount, stats.likeCount, stats.favoriteCount)}
+        />
+        <StatCard 
+          icon={Star} 
+          value={stats.favoriteCount} 
+          label="Favori" 
+          colors={colors} 
+          isActive={stats.favoriteCount >= Math.max(stats.postCount, stats.likeCount, stats.favoriteCount)}
+        />
+      </View>
+
       <View style={styles.contentContainer}>
         <Text style={styles.sectionTitle}>Paylaşımların</Text>
         {renderContent()}
-            </View>
-            
+      </View>
+    
       <TouchableOpacity style={styles.signOutButton} onPress={signOutUser}>
-        <SignOut size={20} color="#D9534F" />
-            <Text style={styles.signOutText}>Çıkış Yap</Text>
-          </TouchableOpacity>
+        <SignOut size={isSmallDevice ? 18 : 20} color="#D9534F" />
+        <Text style={styles.signOutText}>Çıkış Yap</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: any) => StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
+const getStyles = (colors: any, safeTop: number, safeBottom: number, isSmallDevice: boolean, isTablet: boolean) => StyleSheet.create({
+  safeArea: { 
+    flex: 1, 
+    backgroundColor: colors.background,
+    paddingTop: Platform.OS === 'ios' ? 0 : safeTop,
+  },
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    paddingTop: 50, 
+    paddingTop: Platform.OS === 'ios' ? safeTop + 20 : safeTop + 16, 
     paddingHorizontal: 24, 
-    paddingBottom: 10,
+    paddingBottom: 20,
   },
   avatar: { 
-    width: 80, 
-    height: 80, 
-    borderRadius: 40, 
+    width: isSmallDevice ? 60 : 80, 
+    height: isSmallDevice ? 60 : 80, 
+    borderRadius: isSmallDevice ? 30 : 40, 
     backgroundColor: colors.card, 
     justifyContent: 'center', 
     alignItems: 'center', 
     marginRight: 16,
-    shadowColor: colors.shadow ?? '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 6,
+    ...getPlatformShadow(4, colors.shadow),
   },
-  name: { fontFamily: 'Nunito-ExtraBold', fontSize: 26, color: colors.textDark },
-  email: { fontFamily: 'Nunito-Regular', fontSize: 13, color: colors.textMuted, marginTop: 4 },
-  editButton: { marginLeft: 'auto', backgroundColor: colors.card, padding: 10, borderRadius: 20, borderWidth: 1, borderColor: colors.textMuted + '33' },
+  userInfo: {
+    flex: 1,
+  },
+  name: { 
+    fontFamily: 'Nunito-ExtraBold', 
+    fontSize: isSmallDevice ? 20 : 26, 
+    color: colors.textDark,
+    lineHeight: isSmallDevice ? 24 : 32,
+  },
+  email: { 
+    fontFamily: 'Nunito-Regular', 
+    fontSize: isSmallDevice ? 12 : 13, 
+    color: colors.textMuted, 
+    marginTop: 4,
+  },
+  editButton: { 
+    backgroundColor: colors.card, 
+    padding: 10, 
+    borderRadius: 20,
+    borderWidth: 1, 
+    borderColor: colors.textMuted + '33',
+    ...getPlatformShadow(2, colors.shadow),
+  },
   statsContainer: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     marginHorizontal: 24, 
+    marginBottom: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    ...getPlatformShadow(3, colors.shadow),
+  },
+  contentContainer: { 
+    flex: 1, 
+    paddingHorizontal: 24, 
+    paddingTop: 10,
+  },
+  sectionTitle: { 
+    fontFamily: 'Nunito-Bold', 
+    fontSize: isSmallDevice ? 16 : 18, 
+    color: colors.textDark, 
     marginBottom: 16,
-    gap: 10,
   },
-  statCard: { 
-    flex: 1,
-    backgroundColor: colors.card, 
-    borderRadius: 18, 
-    paddingVertical: 16, 
-    paddingHorizontal: 12, 
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.textMuted + '22',
-    shadowColor: colors.shadow ?? '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
+  emptyText: { 
+    fontFamily: 'Nunito-SemiBold', 
+    color: colors.textMuted, 
+    textAlign: 'center', 
+    marginTop: 50,
+    fontSize: 14,
   },
-  statValue: { fontFamily: 'Nunito-ExtraBold', fontSize: 22, color: colors.textDark, marginTop: 8 },
-  statLabel: { fontFamily: 'Nunito-SemiBold', fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  contentContainer: { flex: 1, paddingHorizontal: 24, paddingTop: 6 },
-  sectionTitle: { fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textDark, marginBottom: 12 },
-  emptyText: { fontFamily: 'Nunito-SemiBold', color: colors.textMuted, textAlign: 'center', marginTop: 40 },
   postCard: { 
     backgroundColor: colors.card, 
     borderRadius: 16, 
@@ -205,16 +297,42 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.textMuted + '22',
-    shadowColor: colors.shadow ?? '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    ...getPlatformShadow(2, colors.shadow),
   },
-  postText: { fontFamily: 'Nunito-Regular', fontSize: 16, color: colors.textDark, lineHeight: 24 },
-  anonymousIndicator: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  anonymousText: { fontFamily: 'Nunito-SemiBold', fontSize: 12, color: colors.textMuted, marginLeft: 6 },
-  signOutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, marginHorizontal: 24, borderRadius: 12, marginTop: 'auto' },
-  signOutText: { fontFamily: 'Nunito-Bold', fontSize: 16, color: '#D9534F', marginLeft: 8 },
+  postText: { 
+    fontFamily: 'Nunito-Regular', 
+    fontSize: 16, 
+    color: colors.textDark, 
+    lineHeight: 24,
+  },
+  anonymousIndicator: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 8,
+  },
+  anonymousText: { 
+    fontFamily: 'Nunito-SemiBold', 
+    fontSize: 12, 
+    color: colors.textMuted, 
+    marginLeft: 6,
+  },
+  signOutButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    paddingVertical: 15, 
+    marginHorizontal: 24, 
+    borderRadius: 12, 
+    marginTop: 'auto',
+    marginBottom: Platform.OS === 'ios' ? safeBottom + 10 : 10,
+    backgroundColor: colors.card,
+    ...getPlatformShadow(2, colors.shadow),
+  },
+  signOutText: { 
+    fontFamily: 'Nunito-Bold', 
+    fontSize: 16, 
+    color: "#D9534F", 
+    marginLeft: 8,
+  },
 });
 

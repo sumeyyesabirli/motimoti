@@ -1,5 +1,4 @@
 // Firebase entegreli AuthContext
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
@@ -71,13 +70,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(currentUser);
       
       if (currentUser) {
-        // Kullanıcı giriş yaptığında hasLoggedIn flag'ini set et
-        try {
-          await AsyncStorage.setItem('hasLoggedIn', 'true');
-        } catch (error) {
-          console.error('Error setting hasLoggedIn flag:', error);
-        }
-        
         await loadUserData(currentUser);
       } else {
         setUserData(null);
@@ -104,7 +96,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOutUser = async () => {
     console.log('Signing out user'); // Debug için
     try {
-      // Çıkış yaparken hasLoggedIn flag'ini silme (daha önce giriş yapmış olduğunu hatırla)
       await signOut(auth);
     } catch (error) {
       console.error('SignOut error:', error);
