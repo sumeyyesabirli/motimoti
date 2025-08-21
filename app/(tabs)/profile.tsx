@@ -6,7 +6,7 @@ import { useFeedback } from '../../context/FeedbackContext';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../firebaseConfig';
 import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { SignOut, PencilSimple, User as UserIcon, Heart, Star, Note, UserCircle, Trash } from 'phosphor-react-native';
+import { SignOut, PencilSimple, User as UserIcon, UserCircle, Trash } from 'phosphor-react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { useResponsive, useSafeArea, spacing, fontSizes, getPlatformShadow, borderRadius } from '../../hooks/useResponsive';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
@@ -61,41 +61,68 @@ const ProfilePostCard = ({ item, colors, onEdit, onDelete }: { item: any; colors
   );
 };
 
-// İstatistikleri gösteren kartlar
-const StatCard = ({ icon: Icon, value, label, colors, isActive = false }: { icon: any; value: number; label: string; colors: any; isActive?: boolean }) => {
+// Twitter tarzı minimal istatistikler
+const StatMinimal = ({ stats, colors }: { stats: any; colors: any }) => {
   return (
     <View style={{
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: 16,
-      paddingHorizontal: 12,
-      backgroundColor: isActive ? colors.primaryButton + '20' : 'transparent',
+      backgroundColor: colors.card,
       borderRadius: 16,
-      marginHorizontal: 4,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.textMuted + '22',
     }}>
       <View style={{
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: isActive ? colors.primaryButton : colors.textMuted + '15',
-        justifyContent: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-around',
         alignItems: 'center',
-        marginBottom: 8,
       }}>
-        <Icon size={18} color={isActive ? colors.primaryButton : colors.textMuted} weight="fill" />
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{
+            fontFamily: 'Nunito-ExtraBold',
+            fontSize: 18,
+            color: colors.textDark,
+          }}>{stats.postCount}</Text>
+          <Text style={{
+            fontFamily: 'Nunito-SemiBold',
+            fontSize: 14,
+            color: colors.textMuted,
+          }}>Yazı</Text>
+        </View>
+        <View style={{
+          width: 1,
+          height: '80%',
+          backgroundColor: colors.textMuted + '22',
+        }} />
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{
+            fontFamily: 'Nunito-ExtraBold',
+            fontSize: 18,
+            color: colors.textDark,
+          }}>{stats.likeCount}</Text>
+          <Text style={{
+            fontFamily: 'Nunito-SemiBold',
+            fontSize: 14,
+            color: colors.textMuted,
+          }}>Beğeni</Text>
+        </View>
+        <View style={{
+          width: 1,
+          height: '80%',
+          backgroundColor: colors.textMuted + '22',
+        }} />
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{
+            fontFamily: 'Nunito-ExtraBold',
+            fontSize: 18,
+            color: colors.textDark,
+          }}>{stats.favoriteCount}</Text>
+          <Text style={{
+            fontFamily: 'Nunito-SemiBold',
+            fontSize: 14,
+            color: colors.textMuted,
+          }}>Favori</Text>
+        </View>
       </View>
-      <Text style={{
-        fontFamily: 'Nunito-ExtraBold',
-        fontSize: 16,
-        color: isActive ? colors.primaryButton : colors.textDark,
-        marginBottom: 4,
-      }}>{value}</Text>
-      <Text style={{
-        fontFamily: 'Nunito-Regular',
-        fontSize: 10,
-        color: isActive ? colors.primaryButton : colors.textMuted,
-        textAlign: 'center',
-      }}>{label}</Text>
     </View>
   );
 };
@@ -225,27 +252,7 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.statsContainer}>
-        <StatCard 
-          icon={Note} 
-          value={stats.postCount} 
-          label="Yazı" 
-          colors={colors} 
-          isActive={stats.postCount >= Math.max(stats.postCount, stats.likeCount, stats.favoriteCount)}
-        />
-        <StatCard 
-          icon={Heart} 
-          value={stats.likeCount} 
-          label="Beğeni" 
-          colors={colors} 
-          isActive={stats.likeCount >= Math.max(stats.postCount, stats.likeCount, stats.favoriteCount)}
-        />
-        <StatCard 
-          icon={Star} 
-          value={stats.favoriteCount} 
-          label="Favori" 
-          colors={colors} 
-          isActive={stats.favoriteCount >= Math.max(stats.postCount, stats.likeCount, stats.favoriteCount)}
-        />
+        <StatMinimal stats={stats} colors={colors} />
       </View>
 
       <View style={styles.contentContainer}>
@@ -367,15 +374,8 @@ const getStyles = (colors: any, safeTop: number, safeBottom: number, isSmallDevi
     ...getPlatformShadow(2, colors.shadow),
   },
   statsContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
     marginHorizontal: 24, 
     marginBottom: 24,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    ...getPlatformShadow(3, colors.shadow),
   },
   contentContainer: { 
     flex: 1, 
