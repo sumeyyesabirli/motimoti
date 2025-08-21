@@ -2,7 +2,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Link, useFocusEffect } from 'expo-router';
-import { arrayRemove, arrayUnion, doc, increment, updateDoc } from 'firebase/firestore';
+import { postService } from '../../services/postService';
 import { Heart, Plus, Star } from 'phosphor-react-native';
 import React, { useMemo, useEffect } from 'react';
 import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { usePagination } from '../../hooks/usePagination';
-import { db } from '../../firebaseConfig';
+
 
 // Post type'ını tanımla
 interface Post {
@@ -135,7 +135,7 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
 
 export default function CommunityScreen() {
   const { colors } = useTheme();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { showFeedback } = useFeedback();
   const styles = useMemo(() => getStyles(colors), [colors]);
   
@@ -231,9 +231,13 @@ export default function CommunityScreen() {
         console.log('✅ Beğeni ekleniyor');
       }
       
-      console.log('🔥 Firebase güncelleniyor:', updateData);
-      await updateDoc(postRef, updateData);
-      console.log('✅ Firebase güncellendi');
+      console.log('🔥 API güncelleniyor:', updateData);
+      if (isLiked) {
+        await postService.unlikePost(postId, token);
+      } else {
+        await postService.likePost(postId, token);
+      }
+      console.log('✅ API güncellendi');
       
       // Local state'i güncelle
       const updatedPosts = posts.map(post => {
@@ -318,9 +322,13 @@ export default function CommunityScreen() {
         console.log('✅ Favori ekleniyor');
       }
       
-      console.log('🔥 Firebase güncelleniyor:', updateData);
-      await updateDoc(postRef, updateData);
-      console.log('✅ Firebase güncellendi');
+      console.log('🔥 API güncelleniyor:', updateData);
+      if (isFavorited) {
+        await postService.unfavoritePost(postId, token);
+      } else {
+        await postService.favoritePost(postId, token);
+      }
+      console.log('✅ API güncellendi');
       
       // Local state'i güncelle
       const updatedPosts = posts.map(post => {

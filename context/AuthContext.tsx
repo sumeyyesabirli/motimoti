@@ -1,109 +1,105 @@
-// Firebase entegreli AuthContext
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+// API entegreli AuthContext
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { auth, db } from '../firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { userService } from '../services/userService';
 
 interface UserData {
-  uid: string;
-  email: string | null;
+  id: string;
+  email: string;
+  username?: string;
   displayName?: string;
   anonymousName?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
-  userData: UserData | null;
+  user: UserData | null;
+  token: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOutUser: () => Promise<void>;
+  register: (userData: any) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
-  userData: null,
+  token: null,
   isLoading: true,
   signIn: async () => {},
   signOutUser: async () => {},
+  register: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Kullanıcı bilgilerini Firestore'dan yükle
-  const loadUserData = async (currentUser: User) => {
-    try {
-      const userDocRef = doc(db, 'users', currentUser.uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setUserData({
-          uid: currentUser.uid,
-          email: currentUser.email,
-          displayName: data.displayName,
-          anonymousName: data.anonymousName,
-        });
-      } else {
-        // Kullanıcı dokümanı yoksa temel bilgileri kullan
-        setUserData({
-          uid: currentUser.uid,
-          email: currentUser.email,
-        });
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      // Hata durumunda temel bilgileri kullan
-      setUserData({
-        uid: currentUser.uid,
-        email: currentUser.email,
-      });
-    }
-  };
-
+  // Uygulama başladığında token kontrolü
   useEffect(() => {
-    // Firebase dinleyicisi: kullanıcı giriş/çıkış yaptığında tetiklenir
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      console.log('Firebase auth state changed:', currentUser?.email); // Debug için
-      setUser(currentUser);
-      
-      if (currentUser) {
-        await loadUserData(currentUser);
-      } else {
-        setUserData(null);
+    const checkAuthStatus = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('authToken');
+        if (storedToken) {
+          setToken(storedToken);
+          // Token ile kullanıcı bilgilerini getir
+          // Bu kısım API'den kullanıcı bilgisi döndüğünde güncellenecek
+        }
+      } catch (error) {
+        console.error('Token kontrol edilirken hata:', error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
-    });
+    };
 
-    return unsubscribe;
+    checkAuthStatus();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    console.log('AuthContext signIn called with:', email, password); // Debug için
-    
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Firebase signIn successful:', userCredential.user.email); // Debug için
+      const response = await userService.login(email, password);
+      if (response.success) {
+        const { user: userData, token: authToken } = response.data;
+        setUser(userData);
+        setToken(authToken);
+        await AsyncStorage.setItem('authToken', authToken);
+      } else {
+        throw new Error(response.message || 'Giriş yapılamadı');
+      }
     } catch (error: any) {
-      console.error('Firebase signIn error:', error); // Debug için
+      console.error('Login error:', error);
       throw new Error(error.message || 'Giriş yapılamadı');
     }
   };
 
-  const signOutUser = async () => {
-    console.log('Signing out user'); // Debug için
+  const register = async (userData: any) => {
     try {
-      await signOut(auth);
+      const response = await userService.register(userData);
+      if (response.success) {
+        const { user: newUser, token: authToken } = response.data;
+        setUser(newUser);
+        setToken(authToken);
+        await AsyncStorage.setItem('authToken', authToken);
+      } else {
+        throw new Error(response.message || 'Kayıt yapılamadı');
+      }
+    } catch (error: any) {
+      console.error('Register error:', error);
+      throw new Error(error.message || 'Kayıt yapılamadı');
+    }
+  };
+
+  const signOutUser = async () => {
+    try {
+      setUser(null);
+      setToken(null);
+      await AsyncStorage.removeItem('authToken');
     } catch (error) {
       console.error('SignOut error:', error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, userData, isLoading, signIn, signOutUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, signIn, signOutUser, register }}>
       {children}
     </AuthContext.Provider>
   );

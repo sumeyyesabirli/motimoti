@@ -1,13 +1,14 @@
 // app/add-post.tsx
 import { useRouter } from 'expo-router';
-import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { postService } from '../services/postService';
+import { userService } from '../services/userService';
 import { CaretLeft, User, UserCircle } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTheme } from '../context/ThemeContext';
-import { db } from '../firebaseConfig';
+
 
 // 3 haneli rastgele kod üreten fonksiyon
 const generateAnonymousId = () => {
@@ -28,7 +29,7 @@ const generateAnonymousId = () => {
 
 export default function AddPostScreen() {
   const { colors } = useTheme();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { showFeedback } = useFeedback();
   const router = useRouter();
   const [postText, setPostText] = useState('');
@@ -40,20 +41,23 @@ export default function AddPostScreen() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setUserData({
-            username: data.username || 'Anonim',
-            anonymousName: data.anonymousName || ''
-          });
+      if (user && token) {
+        try {
+          const response = await userService.getUserProfile(user.id);
+          if (response.success) {
+            const data = response.data;
+            setUserData({
+              username: data.username || 'Anonim',
+              anonymousName: data.anonymousName || ''
+            });
+          }
+        } catch (error) {
+          console.error('Kullanıcı bilgileri alınamadı:', error);
         }
       }
     };
     fetchUserData();
-  }, [user]);
+  }, [user, token]);
 
   const handleShare = async () => {
     if (postText.trim().length < 10) {
@@ -70,23 +74,23 @@ export default function AddPostScreen() {
         } else {
           const newAnonymousName = generateAnonymousId();
           
-          const userDocRef = doc(db, "users", user!.uid);
-          await updateDoc(userDocRef, { anonymousName: newAnonymousName });
+          // Kullanıcı bilgilerini güncelle
+          await userService.updateUserProfile(user!.id, { anonymousName: newAnonymousName });
           
           authorNameToSave = newAnonymousName;
         }
       }
 
-      await addDoc(collection(db, "posts"), {
+      // Post oluştur
+      await postService.createPost({
         text: postText,
-        authorId: user!.uid,
+        authorId: user!.id,
         authorName: authorNameToSave,
-        createdAt: serverTimestamp(),
         likeCount: 0,
         likedBy: [],
         favoriteCount: 0,
         favoritedBy: [],
-      });
+      }, token);
       
       showFeedback({ message: 'Paylaşımınız başarıyla eklendi!', type: 'success' });
       router.back();
@@ -99,22 +103,22 @@ export default function AddPostScreen() {
 
   // Test için birden fazla gönderi oluştur
   const createTestPosts = async () => {
-    if (!user) return;
+    if (!user || !token) return;
     
     try {
       setLoading(true); // Use loading for test posts as well
       const testTexts = [
-        'Bu bir test gönderisidir. Pagination testi için oluşturuldu.',
+        'Bu bir test gönderisidir. API pagination testi için oluşturuldu.',
         'İkinci test gönderisi. Daha fazla veri için gerekli.',
         'Üçüncü test gönderisi. Sayfa sayfa yükleme testi.',
         'Dördüncü test gönderisi. Scroll sonunda yeni veri yükleme.',
-        'Beşinci test gönderisi. Firebase pagination testi.',
+        'Beşinci test gönderisi. API pagination testi.',
         'Altıncı test gönderisi. usePagination hook testi.',
         'Yedinci test gönderisi. PaginatedFlatList component testi.',
         'Sekizinci test gönderisi. 10 gönderi sonrası yeni sayfa.',
         'Dokuzuncu test gönderisi. Aşağı çekme ile veri yükleme.',
         'Onuncu test gönderisi. Otomatik pagination sistemi.',
-        'On birinci test gönderisi. Firestore query optimization.',
+        'On birinci test gönderisi. API query optimization.',
         'On ikinci test gönderisi. React Native performance.',
         'On üçüncü test gönderisi. FlatList optimization.',
         'On dördüncü test gönderisi. Memory management.',
@@ -133,7 +137,7 @@ export default function AddPostScreen() {
         'Yirmi yedinci test gönderisi. Order by field.',
         'Yirmi sekizinci test gönderisi. Direction control.',
         'Yirmi dokuzuncu test gönderisi. Collection name.',
-        'Otuzuncu test gönderisi. Firebase integration.',
+        'Otuzuncu test gönderisi. API integration.',
         'Otuz birinci test gönderisi. Real-time updates.',
         'Otuz ikinci test gönderisi. Offline support.',
         'Otuz üçüncü test gönderisi. Data persistence.',
@@ -159,9 +163,8 @@ export default function AddPostScreen() {
       for (let i = 0; i < testTexts.length; i++) {
         const postData = {
           text: testTexts[i],
-          authorId: user.uid,
+          authorId: user.id,
           authorName: user.email?.split('@')[0] || 'Test User',
-          createdAt: new Date(Date.now() - i * 60000), // Her gönderi 1 dakika önce
           likeCount: Math.floor(Math.random() * 10),
           likedBy: [],
           favoriteCount: Math.floor(Math.random() * 5),
@@ -169,7 +172,7 @@ export default function AddPostScreen() {
           isAnonymous: false
         };
 
-        await addDoc(collection(db, 'posts'), postData);
+        await postService.createPost(postData, token);
         console.log(`Test post ${i + 1} created`);
       }
 

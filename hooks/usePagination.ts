@@ -1,14 +1,13 @@
 // hooks/usePagination.ts
 import { useState, useCallback } from 'react';
-import { collection, query, orderBy, limit, startAfter, getDocs, doc, QueryConstraint, OrderByDirection, DocumentData } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { postService } from '../services/postService';
 
 interface UsePaginationOptions<T> {
   collectionName: string;
   orderByField: string;
-  orderDirection?: OrderByDirection;
+  orderDirection?: 'asc' | 'desc';
   pageSize?: number;
-  additionalConstraints?: QueryConstraint[];
+  additionalConstraints?: any[];
 }
 
 interface UsePaginationReturn<T> {
@@ -26,18 +25,17 @@ interface UsePaginationReturn<T> {
   setData: (data: T[]) => void;
 }
 
-export function usePagination<T = DocumentData>({
+export function usePagination<T = any>({
   collectionName,
   orderByField,
   orderDirection = 'desc',
-  pageSize = 10, // 20'den 10'a düşürdüm
+  pageSize = 10,
   additionalConstraints = []
 }: UsePaginationOptions<T>): UsePaginationReturn<T> {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [lastDoc, setLastDoc] = useState<DocumentData | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [pageData, setPageData] = useState<Map<number, T[]>>(new Map());
@@ -48,23 +46,40 @@ export function usePagination<T = DocumentData>({
       console.log('🚀 loadInitialData başladı');
       setLoading(true);
       
-      const constraints = [
-        orderBy(orderByField, orderDirection),
-        limit(pageSize),
-        ...additionalConstraints
-      ];
+      // API'den veri çek
+      let response;
+      if (collectionName === 'posts') {
+        response = await postService.getPosts();
+      } else {
+        throw new Error(`Unknown collection: ${collectionName}`);
+      }
       
-      console.log('📊 Query constraints:', constraints);
-      const q = query(collection(db, collectionName), ...constraints);
-      const snapshot = await getDocs(q);
+      if (!response.success) {
+        throw new Error(response.message || 'Veri yüklenemedi');
+      }
       
-      console.log('📱 Snapshot alındı:', snapshot.docs.length, 'doküman');
+      let allData = response.data || [];
       
-      const newData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as T[];
+      // Sıralama yap
+      allData.sort((a: any, b: any) => {
+        const aValue = a[orderByField];
+        const bValue = b[orderByField];
+        
+        if (orderDirection === 'desc') {
+          return new Date(bValue).getTime() - new Date(aValue).getTime();
+        } else {
+          return new Date(aValue).getTime() - new Date(bValue).getTime();
+        }
+      });
+      
+      // İlk sayfa verilerini al
+      const newData = allData.slice(0, pageSize);
+      
+      console.log('📱 Veri alındı:', newData.length, 'doküman');
       
       // Detaylı veri logları
       console.log('📋 Sayfa 0 - Yüklenen Veriler:');
-      newData.forEach((item, index) => {
+      newData.forEach((item: any, index: number) => {
         console.log(`  ${index + 1}. ID: ${item.id}, Text: ${(item as any).text?.substring(0, 50)}...`);
       });
       
@@ -72,31 +87,18 @@ export function usePagination<T = DocumentData>({
       setData(newData);
       setPageData(new Map([[0, newData]]));
       
-      // lastDoc'u doğru şekilde set et
-      if (snapshot.docs.length > 0) {
-        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-        console.log('📄 lastDoc set edildi:', snapshot.docs[snapshot.docs.length - 1].id);
-      } else {
-        setLastDoc(null);
-        console.log('📄 lastDoc null olarak set edildi (veri yok)');
-      }
-      
-      setHasMore(snapshot.docs.length === pageSize);
+      setHasMore(allData.length > pageSize);
       setCurrentPage(0);
       
-      // Toplam sayfa sayısını hesapla (yaklaşık)
-      if (snapshot.docs.length === pageSize) {
-        setTotalPages(Math.ceil(snapshot.docs.length / pageSize) + 1);
-      } else {
-        setTotalPages(1);
-      }
+      // Toplam sayfa sayısını hesapla
+      setTotalPages(Math.ceil(allData.length / pageSize));
       
       console.log('✅ loadInitialData tamamlandı:', {
         dataLength: newData.length,
-        hasMore: snapshot.docs.length === pageSize,
+        hasMore: allData.length > pageSize,
         currentPage: 0,
-        totalPages: snapshot.docs.length === pageSize ? Math.ceil(snapshot.docs.length / pageSize) + 1 : 1,
-        lastDoc: snapshot.docs[snapshot.docs.length - 1]?.id
+        totalPages: Math.ceil(allData.length / pageSize),
+        totalData: allData.length
       });
     } catch (error) {
       console.error(`❌ Error loading initial ${collectionName}:`, error);
@@ -107,37 +109,53 @@ export function usePagination<T = DocumentData>({
 
   // Sonraki sayfayı yükle
   const loadMoreData = useCallback(async () => {
-    if (!lastDoc || loadingMore) return;
+    if (loadingMore) return;
     
     try {
       setLoadingMore(true);
       
-      const constraints = [
-        orderBy(orderByField, orderDirection),
-        startAfter(lastDoc),
-        limit(pageSize),
-        ...additionalConstraints
-      ];
+      // API'den tüm veriyi çek (cache'den)
+      let response;
+      if (collectionName === 'posts') {
+        response = await postService.getPosts();
+      } else {
+        throw new Error(`Unknown collection: ${collectionName}`);
+      }
       
-      const q = query(collection(db, collectionName), ...constraints);
-      const snapshot = await getDocs(q);
+      if (!response.success) {
+        throw new Error(response.message || 'Veri yüklenemedi');
+      }
       
-      const newData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as T[];
+      let allData = response.data || [];
+      
+      // Sıralama yap
+      allData.sort((a: any, b: any) => {
+        const aValue = a[orderByField];
+        const bValue = b[orderByField];
+        
+        if (orderDirection === 'desc') {
+          return new Date(bValue).getTime() - new Date(aValue).getTime();
+        } else {
+          return new Date(aValue).getTime() - new Date(bValue).getTime();
+        }
+      });
+      
+      const nextPage = currentPage + 1;
+      const startIndex = nextPage * pageSize;
+      const endIndex = startIndex + pageSize;
+      const newData = allData.slice(startIndex, endIndex);
       
       if (newData.length > 0) {
-        const nextPage = currentPage + 1;
-        
         // Yeni sayfa verilerini pageData'ya ekle
         setPageData(prev => new Map(prev).set(nextPage, newData));
         
         // Mevcut verilere ekle
         setData(prev => [...prev, ...newData]);
-        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
         setCurrentPage(nextPage);
-        setHasMore(snapshot.docs.length === pageSize);
+        setHasMore(endIndex < allData.length);
         
         // Toplam sayfa sayısını güncelle
-        setTotalPages(prev => Math.max(prev, nextPage + 1));
+        setTotalPages(Math.ceil(allData.length / pageSize));
       } else {
         setHasMore(false);
       }
@@ -146,14 +164,14 @@ export function usePagination<T = DocumentData>({
     } finally {
       setLoadingMore(false);
     }
-  }, [collectionName, orderByField, orderDirection, pageSize, additionalConstraints, lastDoc, loadingMore, currentPage]);
+  }, [collectionName, orderByField, orderDirection, pageSize, additionalConstraints, currentPage, loadingMore]);
 
   // Belirli bir sayfaya git
   const goToPage = useCallback(async (pageNumber: number) => {
     console.log('🎯 goToPage çağrıldı:', pageNumber);
     
-    if (pageNumber < 0 || pageNumber >= totalPages) {
-      console.log('❌ Geçersiz sayfa numarası:', pageNumber, 'totalPages:', totalPages);
+    if (pageNumber < 0) {
+      console.log('❌ Geçersiz sayfa numarası:', pageNumber);
       return;
     }
     
@@ -170,141 +188,81 @@ export function usePagination<T = DocumentData>({
         return;
       }
       
-      console.log('📥 Sayfa yüklenmemiş, Firestore\'dan çekiliyor:', pageNumber);
+      console.log('📥 Sayfa yüklenmemiş, API\'den çekiliyor:', pageNumber);
       
-      let currentData: T[] = [];
-      let currentLastDoc: DocumentData | null = null;
-      
-      // İlk sayfa için özel durum
-      if (pageNumber === 0) {
-        console.log('🔄 İlk sayfa yükleniyor (0)');
-        const constraints = [
-          orderBy(orderByField, orderDirection),
-          limit(pageSize),
-          ...additionalConstraints
-        ];
-        
-        console.log('📊 Sayfa 0 için query constraints:', constraints);
-        
-        const q = query(collection(db, collectionName), ...constraints);
-        const snapshot = await getDocs(q);
-        
-        console.log('📱 Sayfa 0 snapshot alındı:', snapshot.docs.length, 'doküman');
-        
-        const newData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as T[];
-        currentData = newData;
-        currentLastDoc = snapshot.docs[snapshot.docs.length - 1];
-        
-        // Detaylı veri logları
-        console.log('📋 Sayfa 0 - Yüklenen Veriler:');
-        newData.forEach((item, index) => {
-          console.log(`  ${index + 1}. ID: ${item.id}, Text: ${(item as any).text?.substring(0, 50)}...`);
-        });
-        
-        // Sayfa verilerini kaydet
-        setPageData(prev => new Map(prev).set(0, newData));
-        console.log('💾 Sayfa 0 cache\'e kaydedildi');
+      // API'den veri çek
+      let response;
+      if (collectionName === 'posts') {
+        response = await postService.getPosts();
       } else {
-        // Diğer sayfalar için cursor-based pagination
-        console.log('🔄 Sayfa', pageNumber, 'için cursor-based pagination');
-        
-        // Sayfa 0'ın lastDoc'unu al
-        const page0Data = pageData.get(0);
-        if (!page0Data || page0Data.length === 0) {
-          console.log('❌ Sayfa 0 verisi bulunamadı, önce sayfa 0 yüklenmeli');
-          setLoading(false);
-          return;
-        }
-        
-        // Sayfa 0'ın son dokümanının ID'sini al
-        const lastDocId = page0Data[page0Data.length - 1].id;
-        console.log('🎯 Sayfa', pageNumber, 'için sayfa 0\'ın son dokümanı kullanılıyor:', lastDocId);
-        
-        // Bu ID'den sonraki dokümanları al - startAfter kullanarak
-        const constraints = [
-          orderBy(orderByField, orderDirection),
-          limit(pageSize * (pageNumber + 1)), // Daha fazla veri al
-          ...additionalConstraints
-        ];
-        
-        console.log('📊 Sayfa', pageNumber, 'için query constraints:', constraints);
-        
-        const q = query(collection(db, collectionName), ...constraints);
-        const snapshot = await getDocs(q);
-        
-        console.log('📱 Sayfa', pageNumber, 'snapshot alındı:', snapshot.docs.length, 'doküman');
-        
-        // Sayfa 0'dan sonraki dokümanları al
-        const allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as T[];
-        
-        // Sayfa 0'ın son dokümanından sonraki dokümanları bul
-        const page0LastIndex = allData.findIndex(item => item.id === lastDocId);
-        console.log('🔍 Sayfa 0\'ın son dokümanı bulundu, index:', page0LastIndex);
-        
-        if (page0LastIndex !== -1) {
-          // Sayfa 0'dan sonraki dokümanları al
-          const startIndex = page0LastIndex + 1;
-          const endIndex = startIndex + pageSize;
-          const afterPage0Data = allData.slice(startIndex, endIndex);
-          
-          console.log('🔍 Sayfa 0\'dan sonraki dokümanlar bulundu:', afterPage0Data.length);
-          console.log('🔍 Başlangıç index:', startIndex, 'Bitiş index:', endIndex);
-          
-          currentData = afterPage0Data;
-          if (afterPage0Data.length > 0) {
-            currentLastDoc = afterPage0Data[afterPage0Data.length - 1];
-          }
-          
-          // Detaylı veri logları
-          console.log(`📋 Sayfa ${pageNumber} - Yüklenen Veriler:`);
-          afterPage0Data.forEach((item, index) => {
-            console.log(`  ${index + 1}. ID: ${item.id}, Text: ${(item as any).text?.substring(0, 50)}...`);
-          });
-          
-          // Sayfa verilerini kaydet
-          setPageData(prev => new Map(prev).set(pageNumber, afterPage0Data));
-          console.log('💾 Sayfa', pageNumber, 'cache\'e kaydedildi');
-        } else {
-          console.log('❌ Sayfa 0\'ın son dokümanı bulunamadı');
-          currentData = [];
-          currentLastDoc = null;
-        }
+        throw new Error(`Unknown collection: ${collectionName}`);
       }
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Veri yüklenemedi');
+      }
+      
+      let allData = response.data || [];
+      
+      // Sıralama yap
+      allData.sort((a: any, b: any) => {
+        const aValue = a[orderByField];
+        const bValue = b[orderByField];
+        
+        if (orderDirection === 'desc') {
+          return new Date(bValue).getTime() - new Date(aValue).getTime();
+        } else {
+          return new Date(aValue).getTime() - new Date(bValue).getTime();
+        }
+      });
+      
+      const startIndex = pageNumber * pageSize;
+      const endIndex = startIndex + pageSize;
+      const currentPageData = allData.slice(startIndex, endIndex);
+      
+      console.log('📱 Sayfa', pageNumber, 'veri alındı:', currentPageData.length, 'doküman');
+      
+      // Detaylı veri logları
+      console.log(`📋 Sayfa ${pageNumber} - Yüklenen Veriler:`);
+      currentPageData.forEach((item: any, index: number) => {
+        console.log(`  ${index + 1}. ID: ${item.id}, Text: ${(item as any).text?.substring(0, 50)}...`);
+      });
+      
+      // Sayfa verilerini kaydet
+      setPageData(prev => new Map(prev).set(pageNumber, currentPageData));
+      console.log('💾 Sayfa', pageNumber, 'cache\'e kaydedildi');
       
       console.log('✅ goToPage tamamlandı:', {
         targetPage: pageNumber,
-        dataLength: currentData.length,
-        currentPage: pageNumber,
-        lastDoc: currentLastDoc?.id
+        dataLength: currentPageData.length,
+        currentPage: pageNumber
       });
       
       // Sayfa özeti
       console.log('📊 SAYFA ÖZETİ:');
       console.log(`  🎯 Gidilen Sayfa: ${pageNumber + 1}`);
-      console.log(`  📄 Toplam Veri: ${currentData.length} gönderi`);
-      console.log(`  🔗 İlk Veri ID: ${currentData[0]?.id}`);
-      console.log(`  🔗 Son Veri ID: ${currentData[currentData.length - 1]?.id}`);
-      console.log(`  📍 Cursor (lastDoc): ${currentLastDoc?.id}`);
+      console.log(`  📄 Toplam Veri: ${currentPageData.length} gönderi`);
+      console.log(`  🔗 İlk Veri ID: ${currentPageData[0]?.id}`);
+      console.log(`  🔗 Son Veri ID: ${currentPageData[currentPageData.length - 1]?.id}`);
       console.log('  ──────────────────────────────────────');
       
-      setData(currentData);
-      setLastDoc(currentLastDoc);
+      setData(currentPageData);
       setCurrentPage(pageNumber);
-      setHasMore(currentLastDoc !== null);
+      setHasMore(endIndex < allData.length);
+      setTotalPages(Math.ceil(allData.length / pageSize));
       
     } catch (error) {
       console.error(`❌ Error going to page ${pageNumber}:`, error);
     } finally {
       setLoading(false);
     }
-  }, [pageData, totalPages, collectionName, orderByField, orderDirection, pageSize, additionalConstraints]);
+  }, [pageData, collectionName, orderByField, orderDirection, pageSize, additionalConstraints]);
 
   // Verileri yenile
   const refreshData = useCallback(async () => {
     setPageData(new Map());
     setCurrentPage(0);
     setTotalPages(0);
-    setLastDoc(null);
     setHasMore(true);
     await loadInitialData();
   }, [loadInitialData]);
@@ -315,7 +273,6 @@ export function usePagination<T = DocumentData>({
     setLoading(false);
     setLoadingMore(false);
     setHasMore(true);
-    setLastDoc(null);
     setCurrentPage(0);
     setTotalPages(0);
     setPageData(new Map());

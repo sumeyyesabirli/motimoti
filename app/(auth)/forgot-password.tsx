@@ -1,11 +1,10 @@
 // app/(auth)/forgot-password.tsx
 import { Link, useRouter } from 'expo-router';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useTheme } from '../../context/ThemeContext';
-import { auth } from '../../firebaseConfig';
+import { userService } from '../../services/userService';
 
 export default function ForgotPasswordScreen() {
   const { colors } = useTheme();
@@ -23,7 +22,8 @@ export default function ForgotPasswordScreen() {
     }
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      // API'den şifre sıfırlama isteği gönder
+      await userService.forgotPassword(email);
       showFeedback({ message: 'Sıfırlama bağlantısı gönderildi.', type: 'success' });
       router.back();
     } catch (error) {

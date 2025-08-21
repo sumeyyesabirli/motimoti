@@ -1,16 +1,15 @@
 // app/profile-details.tsx
 import { useRouter } from 'expo-router';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { db } from '../firebaseConfig';
+import { userService } from '../services/userService';
 
 export default function ProfileDetailsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const [username, setUsername] = useState('');
   const [age, setAge] = useState('');
@@ -22,11 +21,10 @@ export default function ProfileDetailsScreen() {
     let isMounted = true;
     const fetch = async () => {
       try {
-        if (!user) return;
-        const ref = doc(db, 'users', user.uid);
-        const snap = await getDoc(ref);
-        if (isMounted && snap.exists()) {
-          const data: any = snap.data();
+        if (!user || !token) return;
+        const response = await userService.getUserProfile(user.id);
+        if (isMounted && response.success) {
+          const data = response.data;
           setUsername(data?.username ?? '');
           setAge(String(data?.age ?? ''));
           setZodiac(data?.zodiac ?? '');
@@ -39,20 +37,24 @@ export default function ProfileDetailsScreen() {
     };
     fetch();
     return () => { isMounted = false; };
-  }, [user]);
+  }, [user, token]);
 
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user || !token) return;
     if (!username || !zodiac) {
       Alert.alert('Uyarı', 'Kullanıcı adı ve burç boş bırakılamaz.');
       return;
     }
     setSaving(true);
     try {
-      const ref = doc(db, 'users', user.uid);
-      await setDoc(ref, { username, age, zodiac, email: user.email }, { merge: true });
+      await userService.updateUserProfile(user.id, { 
+        username, 
+        age, 
+        zodiac, 
+        email: user.email 
+      });
       Alert.alert('Başarılı', 'Profil bilgileriniz güncellendi.');
       router.back();
     } catch (e) {
@@ -98,16 +100,14 @@ export default function ProfileDetailsScreen() {
         />
 
         {saving ? (
-          <ActivityIndicator size="large" color={colors.primaryButton} />
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.primaryButton} />
+            <Text style={styles.savingText}>Kaydediliyor...</Text>
+          </View>
         ) : (
-          <>
-            <TouchableOpacity style={styles.button} onPress={handleSave}>
-              <Text style={styles.buttonText}>Kaydet</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.button, styles.buttonOutline]} onPress={() => router.back()}>
-              <Text style={[styles.buttonText, styles.buttonOutlineText]}>Vazgeç</Text>
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Text style={styles.saveButtonText}>Kaydet</Text>
+          </TouchableOpacity>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -116,14 +116,13 @@ export default function ProfileDetailsScreen() {
 
 const getStyles = (colors: any) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  container: { padding: 24 },
+  container: { padding: 24, paddingBottom: 100 },
+  title: { fontFamily: 'Nunito-ExtraBold', fontSize: 28, color: colors.textDark, textAlign: 'center', marginBottom: 32 },
+  input: { backgroundColor: colors.card, paddingVertical: 16, paddingHorizontal: 20, borderRadius: 12, marginBottom: 16, fontFamily: 'Nunito-SemiBold', fontSize: 16, borderWidth: 1, borderColor: '#EAE5D9' },
+  saveButton: { backgroundColor: colors.primaryButton, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
+  saveButtonText: { fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textLight },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title: { fontFamily: 'Nunito-ExtraBold', fontSize: 28, color: colors.textDark, marginBottom: 16, textAlign: 'center' },
-  input: { width: '100%', backgroundColor: colors.card, paddingVertical: 15, paddingHorizontal: 20, borderRadius: 12, marginBottom: 12, fontFamily: 'Nunito-SemiBold', fontSize: 16, borderWidth: 1, borderColor: '#EAE5D9', color: colors.textDark },
-  button: { width: '100%', backgroundColor: colors.primaryButton, padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-  buttonText: { fontFamily: 'Nunito-Bold', color: colors.textLight, fontSize: 16 },
-  buttonOutline: { backgroundColor: 'transparent', borderWidth: 2, borderColor: colors.primaryButton },
-  buttonOutlineText: { color: colors.primaryButton },
+  savingText: { fontFamily: 'Nunito-SemiBold', fontSize: 16, color: colors.textMuted, marginTop: 16 },
 });
 
 

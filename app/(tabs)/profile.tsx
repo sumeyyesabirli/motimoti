@@ -4,8 +4,8 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicat
 import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useAuth } from '../../context/AuthContext';
-import { db } from '../../firebaseConfig';
-import { collection, query, where, getDocs, onSnapshot, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { postService } from '../../services/postService';
+import { userService } from '../../services/userService';
 import { SignOut, PencilSimple, User as UserIcon, UserCircle, Trash } from 'phosphor-react-native';
 import { Link, useFocusEffect } from 'expo-router';
 import { useResponsive, useSafeArea, spacing, fontSizes, getPlatformShadow, borderRadius } from '../../hooks/useResponsive';
@@ -129,7 +129,7 @@ const StatMinimal = ({ stats, colors }: { stats: any; colors: any }) => {
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { user, signOutUser } = useAuth();
+  const { user, token, signOutUser } = useAuth();
   const { showFeedback, showConfirm } = useFeedback();
   const { top: safeTop, bottom: safeBottom } = useSafeArea();
   const { isSmallDevice, isTablet } = useResponsive();
@@ -147,49 +147,41 @@ export default function ProfileScreen() {
   
   useFocusEffect(
     useCallback(() => {
-      if (!user) return;
+      if (!user || !token) return;
       
       setLoading(true);
         
       const fetchAllData = async () => {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) setUserData(userDocSnap.data());
+        try {
+          // Kullanıcı bilgilerini getir
+          const userProfile = await userService.getUserProfile(user.id);
+          setUserData(userProfile.data);
 
-        const myPostsQuery = query(collection(db, 'posts'), where('authorId', '==', user.uid));
-        const myPostsSnapshot = await getDocs(myPostsQuery);
-        let totalLikes = 0;
-        myPostsSnapshot.forEach(d => {
-          totalLikes += (d.data() as any).likeCount || 0;
-        });
+          // Kullanıcının gönderilerini getir
+          const userPosts = await postService.getUserPosts(user.id);
+          setPosts(userPosts.data);
 
-        const favoritedPostsQuery = query(collection(db, 'posts'), where('favoritedBy', 'array-contains', user.uid));
-        const favoritedPostsSnapshot = await getDocs(favoritedPostsQuery);
-      
-        setStats({
-          postCount: myPostsSnapshot.size,
-          likeCount: totalLikes,
-          favoriteCount: favoritedPostsSnapshot.size,
-        });
+          // İstatistikleri hesapla
+          let totalLikes = 0;
+          userPosts.data.forEach((post: any) => {
+            totalLikes += post.likeCount || 0;
+          });
+
+          setStats({
+            postCount: userPosts.data.length,
+            likeCount: totalLikes,
+            favoriteCount: userPosts.data.filter((post: any) => post.favoritedBy?.includes(user.id)).length,
+          });
+        } catch (error) {
+          console.error('Veri yüklenirken hata:', error);
+          showFeedback({ message: 'Veriler yüklenirken hata oluştu', type: 'error' });
+        } finally {
+          setLoading(false);
+        }
       };
 
       fetchAllData();
-
-      // Liste - kendi yazıları (client-side sıralama)
-      const q = query(collection(db, 'posts'), where('authorId', '==', user.uid));
-      const unsubscribe = onSnapshot(q, snapshot => {
-        const postsData = snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
-        postsData.sort((a, b) => {
-          const aDate = typeof a?.createdAt?.toDate === 'function' ? a.createdAt.toDate() : a?.createdAt ? new Date(a.createdAt) : 0;
-          const bDate = typeof b?.createdAt?.toDate === 'function' ? b.createdAt.toDate() : b?.createdAt ? new Date(b.createdAt) : 0;
-          return (bDate as any) - (aDate as any);
-        });
-        setPosts(postsData as any[]);
-        setLoading(false);
-      });
-
-      return () => unsubscribe();
-    }, [user])
+    }, [user, token, showFeedback])
   );
 
   const renderContent = () => {
@@ -221,18 +213,46 @@ export default function ProfileScreen() {
   };
 
   const handleDelete = useCallback(async () => {
-    if (!postToDelete) return;
+    if (!postToDelete || !token) return;
     
     try {
-      await deleteDoc(doc(db, 'posts', postToDelete.id));
+      await postService.deletePost(postToDelete.id, token);
       showFeedback({ message: 'Paylaşım başarıyla silindi!', type: 'success' });
       setDeleteModalVisible(false);
       setPostToDelete(null);
+      
+      // Posts listesini güncelle
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postToDelete.id));
+      setStats(prevStats => ({ ...prevStats, postCount: prevStats.postCount - 1 }));
     } catch (error) {
       console.error('Error deleting post:', error);
       showFeedback({ message: 'Paylaşım silinirken hata oluştu!', type: 'error' });
     }
-  }, [postToDelete, showFeedback]);
+  }, [postToDelete, token, showFeedback]);
+
+  const handleSaveEdit = async () => {
+    if (!editingId || !editingText.trim() || !token) return;
+    
+    try {
+      await postService.updatePost(editingId, { text: editingText.trim() }, token);
+      showFeedback({ message: 'Paylaşım güncellendi', type: 'success' });
+      
+      // Posts listesini güncelle
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === editingId 
+            ? { ...post, text: editingText.trim() }
+            : post
+        )
+      );
+    } catch (error) {
+      console.error('Update error:', error);
+      showFeedback({ message: 'Güncelleme sırasında hata oluştu', type: 'error' });
+    } finally {
+      setEditingId(null);
+      setEditingText('');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -241,7 +261,7 @@ export default function ProfileScreen() {
           <UserIcon size={isSmallDevice ? 32 : 40} color={colors.header} weight="fill" />
         </View>
         <View style={styles.userInfo}>
-          <Text style={styles.name}>{userData?.username || 'Kullanıcı'}</Text>
+          <Text style={styles.name}>{userData?.username || user?.username || 'Kullanıcı'}</Text>
           <Text style={styles.email}>{user?.email}</Text>
         </View>
         <Link href="/profile/edit" asChild>
@@ -288,19 +308,7 @@ export default function ProfileScreen() {
                 <Text style={{ fontFamily: 'Nunito-SemiBold', color: colors.textMuted }}>İptal</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={async () => {
-                  if (!editingId) return;
-                  const trimmed = editingText.trim();
-                  if (trimmed.length === 0) { setEditingId(null); return; }
-                  try {
-                    await updateDoc(doc(db, 'posts', editingId), { text: trimmed, updatedAt: new Date() });
-                    showFeedback({ message: 'Paylaşım güncellendi', type: 'success' });
-                  } catch (e) {
-                    showFeedback({ message: 'Güncelleme sırasında hata oluştu', type: 'error' });
-                  } finally {
-                    setEditingId(null);
-                  }
-                }}
+                onPress={handleSaveEdit}
                 style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: colors.header, borderRadius: 10 }}
               >
                 <Text style={{ fontFamily: 'Nunito-Bold', color: colors.textLight }}>Kaydet</Text>
@@ -310,7 +318,7 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* Silme Onay Modalı - Ağaç dışında */}
+      {/* Silme Onay Modalı */}
       <ConfirmDeleteModal
         visible={deleteModalVisible}
         title="Paylaşımı Sil"
