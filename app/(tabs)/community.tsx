@@ -10,6 +10,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Eas
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
+import { usePosts } from '../../context/PostsContext';
 import { usePagination } from '../../hooks/usePagination';
 
 
@@ -50,16 +51,14 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
   const isLiked = item.likedBy?.includes(userId);
   const isFavorited = (item.favoritedBy || [])?.includes(userId);
   
-  // Debug için log'lar
-  console.log('🎴 PostCard render:', { 
-    postId: item.id, 
-    isLiked, 
-    isFavorited, 
-    likedBy: item.likedBy, 
-    favoritedBy: item.favoritedBy,
-    likeCount: item.likeCount,
-    favoriteCount: item.favoriteCount
-  });
+  // ACIL DEBUG: Array içeriğini detaylı göster
+  // Count'ları array length'lerinden hesapla (daha güvenilir)
+  const actualLikeCount = item.likedBy?.length || 0;
+  const actualFavoriteCount = item.favoritedBy?.length || 0;
+  
+  console.log(`🎴 ${item.id.substring(0, 8)}... | ❤️${isLiked ? '🔴' : '⚪'} (${actualLikeCount}) | ⭐${isFavorited ? '🟡' : '⚪'} (${actualFavoriteCount})`);
+  console.log(`   └── likedBy: [${item.likedBy?.length || 0}] = ${JSON.stringify(item.likedBy)}`);
+  console.log(`   └── favoritedBy: [${item.favoritedBy?.length || 0}] = ${JSON.stringify(item.favoritedBy)}`);
   
   // Yanıp sönen animasyon için
   const pulseValue = useSharedValue(1);
@@ -99,23 +98,45 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
         <View style={styles.postFooter}>
                      <TouchableOpacity 
              style={[styles.actionButton, isLiked && styles.likedButton]} 
-             onPress={() => onLike(item.id, isLiked)}
+            onPress={() => {
+              console.log('❤️ KALP BASILDI:', {
+                postId: item.id.substring(0, 8) + '...',
+                isLiked,
+                willToggleTo: !isLiked
+              });
+              onLike(item.id, isLiked);
+            }}
              disabled={false} // Her zaman tıklanabilir
            >
-             <Heart size={16} color={isLiked ? colors.header : colors.textMuted} weight={isLiked ? 'fill' : 'regular'} />
+            <Heart 
+              size={16} 
+              color={isLiked ? colors.header : colors.textMuted} 
+              weight={isLiked ? 'fill' : 'regular'} 
+            />
              <Text style={[styles.actionText, isLiked && styles.likedText]}>
-               {Math.max(0, item.likeCount || 0)}
+               {actualLikeCount}
              </Text>
            </TouchableOpacity>
           
                      <TouchableOpacity 
              style={[styles.actionButton, isFavorited && styles.favoritedButton]} 
-             onPress={() => onFavorite(item.id, isFavorited)}
+            onPress={() => {
+              console.log('⭐ YILDIZ BASILDI:', {
+                postId: item.id.substring(0, 8) + '...',
+                isFavorited,
+                willToggleTo: !isFavorited
+              });
+              onFavorite(item.id, isFavorited);
+            }}
              disabled={false} // Her zaman tıklanabilir
            >
-             <Star size={16} color={isFavorited ? '#FFD700' : colors.textMuted} weight={isFavorited ? 'fill' : 'regular'} />
+            <Star 
+              size={16} 
+              color={isFavorited ? '#FFD700' : colors.textMuted} 
+              weight={isFavorited ? 'fill' : 'regular'} 
+            />
              <Text style={[styles.actionText, isFavorited && styles.favoritedText]}>
-               {Math.max(0, item.favoriteCount || 0)}
+               {actualFavoriteCount}
              </Text>
            </TouchableOpacity>
 
@@ -139,39 +160,80 @@ export default function CommunityScreen() {
   const { showFeedback } = useFeedback();
   const styles = useMemo(() => getStyles(colors), [colors]);
   
-  // Basit state yönetimi
-  const [posts, setPosts] = React.useState<Post[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  // Global posts state kullan
+  const {
+    posts, 
+    setPosts, 
+    updatePost,
+    toggleLike, 
+    toggleFavorite, 
+    lastFetchTime, 
+    setLastFetchTime 
+  } = usePosts();
+  
+  // Local loading state'leri
+  const [loading, setLoading] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
   
-  // Post listesini yükle
-  const loadPosts = async () => {
+  // Post listesini yükle (cache ile)
+  const loadPosts = async (forceRefresh = false) => {
     try {
-      setLoading(true);
-      console.log('🚀 Post listesi yükleniyor...');
+      // Cache kontrolü: 5 dakikadan yeni ise yeniden yükleme
+      const now = Date.now();
+      const cacheExpiry = 5 * 60 * 1000; // 5 dakika
+      const shouldLoadFromCache = !forceRefresh && posts.length > 0 && (now - lastFetchTime) < cacheExpiry;
+      
+      if (shouldLoadFromCache) {
+        console.log('💾 CACHE: Posts cache\'den yükleniyor, fresh data var:', {
+          postsCount: posts.length,
+          cacheAge: Math.round((now - lastFetchTime) / 1000) + 's',
+          'freshData': '✅'
+        });
+        return;
+      }
+      
+      setLoading(posts.length === 0); // İlk yüklemede loading göster
+      console.log('🚀 API: Post listesi yükleniyor...');
       
       const response = await postsService.getPosts();
       
-      console.log('📋 API YANITI (Posts Listesi):', JSON.stringify({
-        success: response.success,
-        postCount: response.data?.length || 0,
-        posts: response.data?.map(post => ({
-          id: post.id, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
-          text: post.text?.substring(0, 50) + '...',
-          authorName: post.authorName,
-          authorId: post.authorId, // UUID: 550e8400-e29b-41d4-a716-446655440000
-          likeCount: post.likeCount,
-          favoriteCount: post.favoriteCount,
-          likedBy: post.likedBy?.slice(0, 3), // İlk 3 UUID'yi göster
-          favoritedBy: post.favoritedBy?.slice(0, 3), // İlk 3 UUID'yi göster
-          createdAt: post.createdAt,
-          isAnonymous: post.isAnonymous
-        }))
-      }, null, 2));
+      console.log(`📋 Posts yüklendi: ${response.data?.length || 0} adet | Cache: ${forceRefresh ? 'FORCE_REFRESH' : 'NORMAL_LOAD'}`);
+      
+      // API response kontrol (development only)
+      if (process.env.NODE_ENV === 'development' && response.data?.[0]) {
+        const firstPost = response.data[0];
+        console.log(`🔍 API Check: likedBy(${firstPost.likedBy?.length || 0}) favoritedBy(${firstPost.favoritedBy?.length || 0})`);
+      }
       
       if (response.success && response.data) {
-        setPosts(response.data);
-        console.log('✅ Posts başarıyla yüklendi:', response.data.length, 'adet');
+        // SORUN ÇÖZÜMÜ: Client-side'da likedBy/favoritedBy state'ini koru
+        const enhancedPosts = response.data.map(post => {
+          // Mevcut global state'i koru (PostsContext'ten)
+          const existingPost = posts.find(p => p.id === post.id);
+          
+          // API'den array gelmiyorsa, mevcut state'i koru
+          const finalLikedBy = (post.likedBy && post.likedBy.length > 0) 
+            ? post.likedBy 
+            : existingPost?.likedBy || [];
+          
+          const finalFavoritedBy = (post.favoritedBy && post.favoritedBy.length > 0) 
+            ? post.favoritedBy 
+            : existingPost?.favoritedBy || [];
+          
+          return {
+            ...post,
+            likedBy: finalLikedBy, 
+            favoritedBy: finalFavoritedBy
+          };
+        });
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🔧 State korundu: ${enhancedPosts.length} post | Local cache: ${posts.length > 0 ? 'VAR' : 'YOK'}`);
+        }
+        
+        setPosts(enhancedPosts);
+        setLastFetchTime(now);
+        console.log(`✅ Posts güncellendi: ${enhancedPosts.length} adet`);
       } else {
         console.log('⚠️ Posts yüklenemedi:', response.message);
       }
@@ -186,7 +248,7 @@ export default function CommunityScreen() {
   // Refresh fonksiyonu
   const refreshPosts = async () => {
     setRefreshing(true);
-    await loadPosts();
+    await loadPosts(true); // Force refresh
   };
 
   // Header animasyonu için
@@ -217,140 +279,185 @@ export default function CommunityScreen() {
     }, [user])
   );
 
+  const [processingLikes, setProcessingLikes] = React.useState<Set<string>>(new Set());
+  const [processingFavorites, setProcessingFavorites] = React.useState<Set<string>>(new Set());
+
   const handleLike = async (postId: string, isLiked: boolean) => {
     if (!user) return;
     
-    console.log('❤️ BEĞENI İŞLEMİ:', {
-      postId, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
-      isLiked,
-      userId: user.id, // UUID: 550e8400-e29b-41d4-a716-446655440000
-      action: isLiked ? 'ÇIKAR' : 'EKLE'
-    });
+    // Çifte tıklama önleme
+    if (processingLikes.has(postId)) {
+      console.log('⚠️ LIKE: İşlem devam ediyor, atlanıyor');
+          return;
+        }
+        
+    setProcessingLikes(prev => new Set(prev).add(postId));
+    
+    console.log(`❤️ ${isLiked ? 'Unlike' : 'Like'}: ${postId.substring(0, 8)}...`);
     
     try {
+      // Önce UI'ı hemen güncelle (optimistic update)
+      toggleLike(postId, user.id);
+      // Optimistic update - hemen UI güncelle
+      
+      // Sonra API'yi çağır
+      let apiResponse;
       if (isLiked) {
         console.log('🔄 API: Unlike post çağrılıyor...');
-        await postsService.unlikePost(postId);
+        apiResponse = await postsService.unlikePost(postId);
       } else {
         console.log('🔄 API: Like post çağrılıyor...');
-        await postsService.likePost(postId);
+        apiResponse = await postsService.likePost(postId);
       }
       
-      // Local state'i güncelle
-      const updatedPosts = posts.map(post => {
-        if (post.id === postId) {
-          const currentLikedBy = post.likedBy || [];
-          const currentLikeCount = post.likeCount || 0;
+      // API başarılı mı kontrol et
+      
+      if (apiResponse?.success) {
+        console.log(`✅ Like API başarılı`);
+        
+        // API'den gelen güncel data ile state'i senkronize et
+        if (apiResponse?.data) {
+          console.log('🔄 LIKE SYNC BEFORE:', {
+            apiLikedBy: apiResponse.data.likedBy?.length || 0,
+            apiFavoritedBy: apiResponse.data.favoritedBy?.length || 0,
+            apiLikeCount: apiResponse.data.likeCount,
+            apiFavoriteCount: apiResponse.data.favoriteCount
+          });
           
-          if (isLiked) {
-            // Beğeni çıkar
-            const newLikedBy = currentLikedBy.filter(id => id !== user.id);
-            const newLikeCount = Math.max(0, currentLikeCount - 1);
-            
-            console.log('📱 LOCAL STATE (Beğeni Çıkar):', {
-              postId, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
-              eskiLikeCount: currentLikeCount,
-              yeniLikeCount: newLikeCount,
-              eskiLikedBy: currentLikedBy.slice(0, 3), // İlk 3 UUID: ["550e8400-...", "a0eebc99-...", ...]
-              yeniLikedBy: newLikedBy.slice(0, 3),
-              toplamLikedByCount: `${currentLikedBy.length} → ${newLikedBy.length}`
-            });
-            
-            return { ...post, likedBy: newLikedBy, likeCount: newLikeCount };
-          } else {
-            // Beğeni ekle
-            const newLikedBy = [...currentLikedBy, user.id];
-            const newLikeCount = currentLikeCount + 1;
-            
-            console.log('📱 LOCAL STATE (Beğeni Ekle):', {
-              postId, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
-              eskiLikeCount: currentLikeCount,
-              yeniLikeCount: newLikeCount,
-              eskiLikedBy: currentLikedBy.slice(0, 3), // İlk 3 UUID: ["550e8400-...", "a0eebc99-...", ...]
-              yeniLikedBy: newLikedBy.slice(0, 3),
-              toplamLikedByCount: `${currentLikedBy.length} → ${newLikedBy.length}`,
-              eklenenUserId: user.id // UUID: 550e8400-e29b-41d4-a716-446655440000
-            });
-            
-            return { ...post, likedBy: newLikedBy, likeCount: newLikeCount };
-          }
+          console.log('🔍 API ARRAYS DETAIL:', {
+            likedByArray: JSON.stringify(apiResponse.data.likedBy),
+            favoritedByArray: JSON.stringify(apiResponse.data.favoritedBy)
+          });
+          
+          // API'den array format ile direkt sync
+          updatePost(postId, {
+            likeCount: apiResponse.data.likeCount,
+            favoriteCount: apiResponse.data.favoriteCount,
+            likedBy: apiResponse.data.likedBy || [],
+            favoritedBy: apiResponse.data.favoritedBy || []
+          });
+          console.log('✅ LIKE SYNC: API arrayleri ile sync edildi');
         }
-        return post;
+      } else {
+        throw new Error(apiResponse?.message || 'API işlemi başarısız');
+      }
+      
+    } catch (error: any) {
+      console.error('❌ BEĞENI API HATASI:', {
+        postId: postId.substring(0, 8) + '...',
+        errorMessage: error.message,
+        errorStatus: error.response?.status,
+        errorData: error.response?.data,
+        'rollbackYapılıyor': '🔄'
       });
       
-      setPosts(updatedPosts);
-      console.log('✅ Beğeni işlemi tamamlandı');
+      // Hata durumunda state'i geri al
+      toggleLike(postId, user.id);
+      console.log('🔄 ROLLBACK: UI state geri alındı');
       
-    } catch (error) {
-      console.error('❌ Beğeni hatası:', error);
-      showFeedback({ message: 'Beğeni işlemi başarısız', type: 'error' });
+      showFeedback({ 
+        message: `Beğeni işlemi başarısız: ${error.response?.status || 'Network'} Error`, 
+        type: 'error' 
+      });
+    } finally {
+      // Processing state'ini temizle
+      setProcessingLikes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
     }
   };
 
   const handleFavorite = async (postId: string, isFavorited: boolean) => {
     if (!user) return;
     
-    console.log('⭐ FAVORİ İŞLEMİ:', {
-      postId, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
-      isFavorited,
-      userId: user.id, // UUID: 550e8400-e29b-41d4-a716-446655440000
-      action: isFavorited ? 'ÇIKAR' : 'EKLE'
-    });
+    // Çifte tıklama önleme
+    if (processingFavorites.has(postId)) {
+      console.log('⚠️ FAVORITE: İşlem devam ediyor, atlanıyor');
+          return;
+        }
+        
+    setProcessingFavorites(prev => new Set(prev).add(postId));
+    
+    console.log(`⭐ ${isFavorited ? 'Unfavorite' : 'Favorite'}: ${postId.substring(0, 8)}...`);
     
     try {
+      // Önce UI'ı hemen güncelle (optimistic update)
+      toggleFavorite(postId, user.id);
+      // Optimistic update - hemen UI güncelle
+      
+      // Sonra API'yi çağır
+      let apiResponse;
       if (isFavorited) {
         console.log('🔄 API: Unfavorite post çağrılıyor...');
-        await postsService.unfavoritePost(postId);
+        apiResponse = await postsService.unfavoritePost(postId);
       } else {
         console.log('🔄 API: Favorite post çağrılıyor...');
-        await postsService.favoritePost(postId);
+        apiResponse = await postsService.favoritePost(postId);
       }
       
-      // Local state'i güncelle
-      const updatedPosts = posts.map(post => {
-        if (post.id === postId) {
-          const currentFavoritedBy = post.favoritedBy || [];
-          const currentFavoriteCount = post.favoriteCount || 0;
-          
-          if (isFavorited) {
-            // Favori çıkar
-            const newFavoritedBy = currentFavoritedBy.filter(id => id !== user.id);
-            const newFavoriteCount = Math.max(0, currentFavoriteCount - 1);
-            
-            console.log('📱 LOCAL STATE (Favori Çıkar):', {
-              postId,
-              eskiFavoriteCount: currentFavoriteCount,
-              yeniFavoriteCount: newFavoriteCount,
-              eskiFavoritedBy: currentFavoritedBy,
-              yeniFavoritedBy: newFavoritedBy
-            });
-            
-            return { ...post, favoritedBy: newFavoritedBy, favoriteCount: newFavoriteCount };
-          } else {
-            // Favori ekle
-            const newFavoritedBy = [...currentFavoritedBy, user.id];
-            const newFavoriteCount = currentFavoriteCount + 1;
-            
-            console.log('📱 LOCAL STATE (Favori Ekle):', {
-              postId,
-              eskiFavoriteCount: currentFavoriteCount,
-              yeniFavoriteCount: newFavoriteCount,
-              eskiFavoritedBy: currentFavoritedBy,
-              yeniFavoritedBy: newFavoritedBy
-            });
-            
-            return { ...post, favoritedBy: newFavoritedBy, favoriteCount: newFavoriteCount };
-          }
-        }
-        return post;
+      console.log('📊 API RESPONSE (Favorite/Unfavorite):', {
+        success: apiResponse?.success,
+        message: apiResponse?.message,
+        data: apiResponse?.data ? 'var' : 'yok',
+        postId: postId.substring(0, 8) + '...'
       });
       
-      setPosts(updatedPosts);
-      console.log('✅ Favori işlemi tamamlandı');
+      if (apiResponse?.success) {
+        console.log('✅ GLOBAL: API başarılı, favori kalıcı olarak kaydedildi');
+        
+        // API'den gelen güncel data ile state'i senkronize et
+        if (apiResponse?.data) {
+          console.log('🔄 FAVORITE SYNC BEFORE:', {
+            apiLikedBy: apiResponse.data.likedBy?.length || 0,
+            apiFavoritedBy: apiResponse.data.favoritedBy?.length || 0,
+            apiLikeCount: apiResponse.data.likeCount,
+            apiFavoriteCount: apiResponse.data.favoriteCount
+          });
+          
+          console.log('🔍 FAVORITE API ARRAYS DETAIL:', {
+            likedByArray: JSON.stringify(apiResponse.data.likedBy),
+            favoritedByArray: JSON.stringify(apiResponse.data.favoritedBy)
+          });
+          
+          // API'den array format ile direkt sync
+          updatePost(postId, {
+            likeCount: apiResponse.data.likeCount,
+            favoriteCount: apiResponse.data.favoriteCount,
+            likedBy: apiResponse.data.likedBy || [],
+            favoritedBy: apiResponse.data.favoritedBy || []
+          });
+          console.log('✅ FAVORITE SYNC: API arrayleri ile sync edildi');
+        }
+      } else {
+        throw new Error(apiResponse?.message || 'API işlemi başarısız');
+      }
       
-    } catch (error) {
-      console.error('❌ Favori hatası:', error);
-      showFeedback({ message: 'Favori işlemi başarısız', type: 'error' });
+    } catch (error: any) {
+      console.error('❌ FAVORİ API HATASI:', {
+        postId: postId.substring(0, 8) + '...',
+        errorMessage: error.message,
+        errorStatus: error.response?.status,
+        errorData: error.response?.data,
+        'rollbackYapılıyor': '🔄'
+      });
+      
+      // Hata durumunda state'i geri al
+      toggleFavorite(postId, user.id);
+      console.log('🔄 ROLLBACK: UI state geri alındı');
+      
+      showFeedback({ 
+        message: `Favori işlemi başarısız: ${error.response?.status || 'Network'} Error`, 
+        type: 'error' 
+      });
+    } finally {
+      // Processing state'ini temizle
+      setProcessingFavorites(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
     }
   };
 

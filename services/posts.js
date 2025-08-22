@@ -69,53 +69,57 @@ export async function deletePost(postId) {
 }
 
 export async function likePost(postId) {
-  console.log('🚀 Like Post isteği:', { postId });
+  // Like API çağrısı
   
   const res = await api.post(`/posts/${postId}/like`);
   
-  console.log('✅ Like Post başarılı:', {
-    postId: res.data.data?.id,
-    newLikeCount: res.data.data?.likeCount
-  });
+  console.log(`✅ Like API: Count=${res.data.data?.likeCount}`);
+  
+  // ACIL DEBUG: Tam API response'u göster
+  console.log('🔍 LIKE API FULL DEBUG:', JSON.stringify({
+    success: res.data.success,
+    message: res.data.message,
+    data: res.data.data,
+    allDataKeys: res.data.data ? Object.keys(res.data.data) : 'NO_DATA'
+  }, null, 2));
   
   return res.data;
 }
 
 export async function unlikePost(postId) {
-  console.log('🚀 Unlike Post isteği:', { postId });
+  // Unlike API çağrısı
   
   const res = await api.delete(`/posts/${postId}/like`);
   
-  console.log('✅ Unlike Post başarılı:', {
-    postId: res.data.data?.id,
-    newLikeCount: res.data.data?.likeCount
-  });
+  console.log(`✅ Unlike API: Count=${res.data.data?.likeCount}`);
   
   return res.data;
 }
 
 export async function favoritePost(postId) {
-  console.log('🚀 Favorite Post isteği:', { postId });
+  // Favorite API çağrısı
   
   const res = await api.post(`/posts/${postId}/favorite`);
   
-  console.log('✅ Favorite Post başarılı:', {
-    postId: res.data.data?.id,
-    newFavoriteCount: res.data.data?.favoriteCount
-  });
+  console.log(`✅ Favorite API: Count=${res.data.data?.favoriteCount}`);
+  
+  // ACIL DEBUG: Favorite API'nin tam response'unu göster
+  console.log('🔍 FAVORITE API FULL DEBUG:', JSON.stringify({
+    success: res.data.success,
+    message: res.data.message,
+    data: res.data.data,
+    allDataKeys: res.data.data ? Object.keys(res.data.data) : 'NO_DATA'
+  }, null, 2));
   
   return res.data;
 }
 
 export async function unfavoritePost(postId) {
-  console.log('🚀 Unfavorite Post isteği:', { postId });
+  // Unfavorite API çağrısı
   
   const res = await api.delete(`/posts/${postId}/favorite`);
   
-  console.log('✅ Unfavorite Post başarılı:', {
-    postId: res.data.data?.id,
-    newFavoriteCount: res.data.data?.favoriteCount
-  });
+  console.log(`✅ Unfavorite API: Count=${res.data.data?.favoriteCount}`);
   
   return res.data;
 }

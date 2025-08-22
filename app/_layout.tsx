@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { FeedbackProvider } from '../context/FeedbackContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { PostsProvider } from '../context/PostsContext';
 import { Text, TextInput } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -145,11 +146,13 @@ export default function RootLayout() {
     <ThemeProvider>
       <FeedbackProvider>
         <AuthProvider>
-          <ThemedAppShell>
-            <OnboardingWrapper>
-              <Slot />
-            </OnboardingWrapper>
-          </ThemedAppShell>
+          <PostsProvider>
+            <ThemedAppShell>
+              <OnboardingWrapper>
+                <Slot />
+              </OnboardingWrapper>
+            </ThemedAppShell>
+          </PostsProvider>
         </AuthProvider>
       </FeedbackProvider>
     </ThemeProvider>
