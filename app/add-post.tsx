@@ -64,6 +64,15 @@ export default function AddPostScreen() {
       showFeedback({ message: 'Yazınız en az 10 karakter olmalıdır.', type: 'error' });
       return;
     }
+    
+    // Debug: Kullanıcı bilgilerini kontrol et
+    console.log('🔍🔍🔍 POST OLUŞTURMA DEBUG 🔍🔍🔍');
+    console.log('userId:', user?.id);
+    console.log('userEmail:', user?.email);
+    console.log('userName:', user?.username);
+    console.log('tokenExists:', !!token);
+    console.log('🔍🔍🔍 DEBUG SON 🔍🔍🔍');
+    
     setLoading(true);
     try {
       let authorNameToSave = userData.username;
@@ -81,15 +90,12 @@ export default function AddPostScreen() {
         }
       }
 
-      // Post oluştur
+      // Post oluştur - API'nin beklediği format
       await postService.createPost({
         text: postText,
         authorId: user!.id,
         authorName: authorNameToSave,
-        likeCount: 0,
-        likedBy: [],
-        favoriteCount: 0,
-        favoritedBy: [],
+        isAnonymous: isAnonymous
       }, token);
       
       showFeedback({ message: 'Paylaşımınız başarıyla eklendi!', type: 'success' });
