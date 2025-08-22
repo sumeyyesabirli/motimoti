@@ -2,7 +2,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Link, useFocusEffect } from 'expo-router';
-import { postService } from '../../services/postService';
+import * as postsService from '../../services/posts';
 import { Heart, Plus, Star } from 'phosphor-react-native';
 import React, { useMemo, useEffect } from 'react';
 import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -139,36 +139,53 @@ export default function CommunityScreen() {
   const { showFeedback } = useFeedback();
   const styles = useMemo(() => getStyles(colors), [colors]);
   
-  // Pagination hook'unu kullan
-  const {
-    data: posts,
-    loading,
-    loadingMore,
-    hasMore,
-    currentPage,
-    totalPages,
-    loadInitialData,
-    loadMoreData,
-    refreshData,
-    goToPage,
-    setData
-  } = usePagination<Post>({
-    collectionName: 'posts',
-    orderByField: 'createdAt',
-    orderDirection: 'desc',
-    pageSize: 10 // 20'den 10'a düşürdüm
-  });
+  // Basit state yönetimi
+  const [posts, setPosts] = React.useState<Post[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
   
-  // State değişikliklerini izle
-  useEffect(() => {
-    console.log('📊 CommunityScreen state güncellendi:', {
-      postsLength: posts.length,
-      currentPage,
-      totalPages,
-      hasMore,
-      loading
-    });
-  }, [posts.length, currentPage, totalPages, hasMore, loading]);
+  // Post listesini yükle
+  const loadPosts = async () => {
+    try {
+      setLoading(true);
+      console.log('🚀 Post listesi yükleniyor...');
+      
+      const response = await postsService.getPosts();
+      
+      console.log('📋 API YANITI (Posts Listesi):', JSON.stringify({
+        success: response.success,
+        postCount: response.data?.length || 0,
+        posts: response.data?.map(post => ({
+          id: post.id,
+          text: post.text?.substring(0, 50) + '...',
+          authorName: post.authorName,
+          authorId: post.authorId,
+          likeCount: post.likeCount,
+          favoriteCount: post.favoriteCount,
+          createdAt: post.createdAt,
+          isAnonymous: post.isAnonymous
+        }))
+      }, null, 2));
+      
+      if (response.success && response.data) {
+        setPosts(response.data);
+        console.log('✅ Posts başarıyla yüklendi:', response.data.length, 'adet');
+      } else {
+        console.log('⚠️ Posts yüklenemedi:', response.message);
+      }
+    } catch (error) {
+      console.error('❌ Posts yükleme hatası:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Refresh fonksiyonu
+  const refreshPosts = async () => {
+    setRefreshing(true);
+    await loadPosts();
+  };
 
   // Header animasyonu için
   const headerHeight = useSharedValue(120);
@@ -188,56 +205,34 @@ export default function CommunityScreen() {
   useFocusEffect(
     React.useCallback(() => {
       console.log('🔍 CommunityScreen useFocusEffect triggered');
-      console.log('👤 User:', user?.uid);
+      console.log('👤 User:', user?.id);
       if (!user) {
         console.log('❌ No user, returning');
         return;
       }
-      console.log('🚀 Calling loadInitialData...');
-      loadInitialData();
+      console.log('🚀 Calling loadPosts...');
+      loadPosts();
     }, [user])
   );
 
   const handleLike = async (postId: string, isLiked: boolean) => {
-    if (!user) return; // Giriş yapmamış kullanıcılar beğenemez
+    if (!user) return;
     
-    console.log('❤️ handleLike çağrıldı:', { postId, isLiked, userId: user.uid });
+    console.log('❤️ BEĞENI İŞLEMİ:', {
+      postId,
+      isLiked,
+      userId: user.id,
+      action: isLiked ? 'ÇIKAR' : 'EKLE'
+    });
     
     try {
-      const postRef = doc(db, "posts", postId);
-      const updateData: any = {};
-      
       if (isLiked) {
-        // Beğeni çıkar - sadece gerçekten beğenilmişse
-        const currentPost = posts.find(post => post.id === postId);
-        if (!currentPost?.likedBy?.includes(user.uid)) {
-          console.log('⚠️ Bu gönderi zaten beğenilmemiş, işlem yapılmıyor');
-          return;
-        }
-        
-        updateData.likedBy = arrayRemove(user.uid);
-        updateData.likeCount = increment(-1);
-        console.log('❌ Beğeni çıkarılıyor');
+        console.log('🔄 API: Unlike post çağrılıyor...');
+        await postsService.unlikePost(postId);
       } else {
-        // Beğeni ekle - eğer zaten beğenilmişse işlem yapma
-        const currentPost = posts.find(post => post.id === postId);
-        if (currentPost?.likedBy?.includes(user.uid)) {
-          console.log('⚠️ Bu gönderi zaten beğenilmiş, işlem yapılmıyor');
-          return;
-        }
-        
-        updateData.likedBy = arrayUnion(user.uid);
-        updateData.likeCount = increment(1);
-        console.log('✅ Beğeni ekleniyor');
+        console.log('🔄 API: Like post çağrılıyor...');
+        await postsService.likePost(postId);
       }
-      
-      console.log('🔥 API güncelleniyor:', updateData);
-      if (isLiked) {
-        await postService.unlikePost(postId, token);
-      } else {
-        await postService.likePost(postId, token);
-      }
-      console.log('✅ API güncellendi');
       
       // Local state'i güncelle
       const updatedPosts = posts.map(post => {
@@ -247,88 +242,64 @@ export default function CommunityScreen() {
           
           if (isLiked) {
             // Beğeni çıkar
-            const newLikedBy = currentLikedBy.filter(id => id !== user.uid);
-            const newLikeCount = Math.max(0, currentLikeCount - 1); // 0'ın altına düşmesin
-            console.log('🔄 Local state güncelleniyor (beğeni çıkar):', { 
-              oldLikedBy: currentLikedBy, 
-              newLikedBy, 
-              oldLikeCount: currentLikeCount, 
-              newLikeCount 
+            const newLikedBy = currentLikedBy.filter(id => id !== user.id);
+            const newLikeCount = Math.max(0, currentLikeCount - 1);
+            
+            console.log('📱 LOCAL STATE (Beğeni Çıkar):', {
+              postId,
+              eskiLikeCount: currentLikeCount,
+              yeniLikeCount: newLikeCount,
+              eskiLikedBy: currentLikedBy,
+              yeniLikedBy: newLikedBy
             });
-            return {
-              ...post,
-              likedBy: newLikedBy,
-              likeCount: newLikeCount
-            };
+            
+            return { ...post, likedBy: newLikedBy, likeCount: newLikeCount };
           } else {
             // Beğeni ekle
-            const newLikedBy = [...currentLikedBy, user.uid];
+            const newLikedBy = [...currentLikedBy, user.id];
             const newLikeCount = currentLikeCount + 1;
-            console.log('🔄 Local state güncelleniyor (beğeni ekle):', { 
-              oldLikedBy: currentLikedBy, 
-              newLikedBy, 
-              oldLikeCount: currentLikeCount, 
-              newLikeCount 
+            
+            console.log('📱 LOCAL STATE (Beğeni Ekle):', {
+              postId,
+              eskiLikeCount: currentLikeCount,
+              yeniLikeCount: newLikeCount,
+              eskiLikedBy: currentLikedBy,
+              yeniLikedBy: newLikedBy
             });
-            return {
-              ...post,
-              likedBy: newLikedBy,
-              likeCount: newLikeCount
-            };
+            
+            return { ...post, likedBy: newLikedBy, likeCount: newLikeCount };
           }
         }
         return post;
       });
       
-      console.log('📱 Local state güncelleniyor, posts sayısı:', updatedPosts.length);
-      setData(updatedPosts);
-      console.log('✅ Local state güncellendi');
+      setPosts(updatedPosts);
+      console.log('✅ Beğeni işlemi tamamlandı');
       
     } catch (error) {
-      console.error('❌ Error updating like:', error);
+      console.error('❌ Beğeni hatası:', error);
+      showFeedback({ message: 'Beğeni işlemi başarısız', type: 'error' });
     }
   };
 
   const handleFavorite = async (postId: string, isFavorited: boolean) => {
-    if (!user) return; // Giriş yapmamış kullanıcılar favori ekleyemez
+    if (!user) return;
     
-    console.log('⭐ handleFavorite çağrıldı:', { postId, isFavorited, userId: user.uid });
+    console.log('⭐ FAVORİ İŞLEMİ:', {
+      postId,
+      isFavorited,
+      userId: user.id,
+      action: isFavorited ? 'ÇIKAR' : 'EKLE'
+    });
     
     try {
-      const postRef = doc(db, "posts", postId);
-      const updateData: any = {};
-      
       if (isFavorited) {
-        // Favori çıkar - sadece gerçekten favori eklenmişse
-        const currentPost = posts.find(post => post.id === postId);
-        if (!currentPost?.favoritedBy?.includes(user.uid)) {
-          console.log('⚠️ Bu gönderi zaten favori eklenmemiş, işlem yapılmıyor');
-          return;
-        }
-        
-        updateData.favoritedBy = arrayRemove(user.uid);
-        updateData.favoriteCount = increment(-1);
-        console.log('❌ Favori çıkarılıyor');
+        console.log('🔄 API: Unfavorite post çağrılıyor...');
+        await postsService.unfavoritePost(postId);
       } else {
-        // Favori ekle - eğer zaten favori eklenmişse işlem yapma
-        const currentPost = posts.find(post => post.id === postId);
-        if (currentPost?.favoritedBy?.includes(user.uid)) {
-          console.log('⚠️ Bu gönderi zaten favori eklenmiş, işlem yapılmıyor');
-          return;
-        }
-        
-        updateData.favoritedBy = arrayUnion(user.uid);
-        updateData.favoriteCount = increment(1);
-        console.log('✅ Favori ekleniyor');
+        console.log('🔄 API: Favorite post çağrılıyor...');
+        await postsService.favoritePost(postId);
       }
-      
-      console.log('🔥 API güncelleniyor:', updateData);
-      if (isFavorited) {
-        await postService.unfavoritePost(postId, token);
-      } else {
-        await postService.favoritePost(postId, token);
-      }
-      console.log('✅ API güncellendi');
       
       // Local state'i güncelle
       const updatedPosts = posts.map(post => {
@@ -338,45 +309,43 @@ export default function CommunityScreen() {
           
           if (isFavorited) {
             // Favori çıkar
-            const newFavoritedBy = currentFavoritedBy.filter(id => id !== user.uid);
-            const newFavoriteCount = Math.max(0, currentFavoriteCount - 1); // 0'ın altına düşmesin
-            console.log('🔄 Local state güncelleniyor (favori çıkar):', { 
-              oldFavoritedBy: currentFavoritedBy, 
-              newFavoritedBy, 
-              oldFavoriteCount: currentFavoriteCount, 
-              newFavoriteCount 
+            const newFavoritedBy = currentFavoritedBy.filter(id => id !== user.id);
+            const newFavoriteCount = Math.max(0, currentFavoriteCount - 1);
+            
+            console.log('📱 LOCAL STATE (Favori Çıkar):', {
+              postId,
+              eskiFavoriteCount: currentFavoriteCount,
+              yeniFavoriteCount: newFavoriteCount,
+              eskiFavoritedBy: currentFavoritedBy,
+              yeniFavoritedBy: newFavoritedBy
             });
-            return {
-              ...post,
-              favoritedBy: newFavoritedBy,
-              favoriteCount: newFavoriteCount
-            };
+            
+            return { ...post, favoritedBy: newFavoritedBy, favoriteCount: newFavoriteCount };
           } else {
             // Favori ekle
-            const newFavoritedBy = [...currentFavoritedBy, user.uid];
+            const newFavoritedBy = [...currentFavoritedBy, user.id];
             const newFavoriteCount = currentFavoriteCount + 1;
-            console.log('🔄 Local state güncelleniyor (favori ekle):', { 
-              oldFavoritedBy: currentFavoritedBy, 
-              newFavoritedBy, 
-              oldFavoriteCount: currentFavoriteCount, 
-              newFavoriteCount 
+            
+            console.log('📱 LOCAL STATE (Favori Ekle):', {
+              postId,
+              eskiFavoriteCount: currentFavoriteCount,
+              yeniFavoriteCount: newFavoriteCount,
+              eskiFavoritedBy: currentFavoritedBy,
+              yeniFavoritedBy: newFavoritedBy
             });
-            return {
-              ...post,
-              favoritedBy: newFavoritedBy,
-              favoriteCount: newFavoriteCount
-            };
+            
+            return { ...post, favoritedBy: newFavoritedBy, favoriteCount: newFavoriteCount };
           }
         }
         return post;
       });
       
-      console.log('📱 Local state güncelleniyor, posts sayısı:', updatedPosts.length);
-      setData(updatedPosts);
-      console.log('✅ Local state güncellendi');
+      setPosts(updatedPosts);
+      console.log('✅ Favori işlemi tamamlandı');
       
     } catch (error) {
-      console.error('❌ Error updating favorite:', error);
+      console.error('❌ Favori hatası:', error);
+      showFeedback({ message: 'Favori işlemi başarısız', type: 'error' });
     }
   };
 
@@ -431,7 +400,7 @@ export default function CommunityScreen() {
       colors={colors} 
       onLike={handleLike} 
       onFavorite={handleFavorite}
-      userId={user.uid} 
+                  userId={user.id} 
       isLast={index === posts.length - 1}
     />
   );
@@ -454,8 +423,8 @@ export default function CommunityScreen() {
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          onRefresh={refreshData}
-          refreshing={loading}
+          onRefresh={refreshPosts}
+          refreshing={refreshing}
           ListEmptyComponent={
             <View style={styles.centerContainer}>
               <Text style={styles.noPostsText}>Henüz paylaşım yok</Text>
@@ -467,22 +436,7 @@ export default function CommunityScreen() {
               {/* Toplam gönderi sayısı kaldırıldı */}
             </View>
           }
-          onEndReached={() => {
-            console.log('📱 FlatList onEndReached tetiklendi, hasMore:', hasMore);
-            if (hasMore && !loading) {
-              console.log('🚀 Sonraki sayfa yükleniyor...');
-              loadMoreData();
-            }
-          }}
           onEndReachedThreshold={0.1}
-          ListFooterComponent={
-            hasMore ? (
-              <View style={styles.loadingFooter}>
-                <ActivityIndicator size="small" color={colors.primaryButton} />
-                <Text style={styles.loadingText}>Daha fazla yükleniyor...</Text>
-              </View>
-            ) : undefined
-          }
         />
       )}
 

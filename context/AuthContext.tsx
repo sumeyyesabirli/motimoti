@@ -56,6 +56,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Rate limiting için önce eski token'ı temizle
+      await AsyncStorage.removeItem('authToken');
+      
       const response = await authService.login(email, password);
       if (response.success) {
         const { user: userData, token: authToken } = response.data;
@@ -66,6 +69,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      // 429 hatası özel mesajı
+      if (error.message?.includes('429')) {
+        throw new Error('Çok fazla giriş denemesi. Lütfen 5 dakika bekleyip tekrar deneyin.');
+      }
+      
       throw new Error(error.message || 'Giriş yapılamadı');
     }
   };
