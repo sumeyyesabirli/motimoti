@@ -1,7 +1,7 @@
 // app/add-post.tsx
 import { useRouter } from 'expo-router';
-import { postService } from '../services/postService';
-import { userService } from '../services/userService';
+import * as postsService from '../services/posts';
+import * as usersService from '../services/users';
 import { CaretLeft, User, UserCircle } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -43,7 +43,7 @@ export default function AddPostScreen() {
     const fetchUserData = async () => {
       if (user && token) {
         try {
-          const response = await userService.getUserProfile(user.id);
+          const response = await usersService.getUserProfile(user.id);
           if (response.success) {
             const data = response.data;
             setUserData({
@@ -84,19 +84,19 @@ export default function AddPostScreen() {
           const newAnonymousName = generateAnonymousId();
           
           // Kullanıcı bilgilerini güncelle
-          await userService.updateUserProfile(user!.id, { anonymousName: newAnonymousName });
+          await usersService.updateUserProfile(user!.id, { anonymousName: newAnonymousName });
           
           authorNameToSave = newAnonymousName;
         }
       }
 
       // Post oluştur - API'nin beklediği format
-      await postService.createPost({
+      await postsService.createPost({
         text: postText,
         authorId: user!.id,
         authorName: authorNameToSave,
         isAnonymous: isAnonymous
-      }, token);
+      });
       
       showFeedback({ message: 'Paylaşımınız başarıyla eklendi!', type: 'success' });
       router.back();

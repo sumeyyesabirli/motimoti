@@ -1,7 +1,7 @@
 // API entegreli AuthContext
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { userService } from '../services/userService';
+import * as authService from '../services/auth';
 
 interface UserData {
   id: string;
@@ -56,12 +56,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const response = await userService.login(email, password);
+      const response = await authService.login(email, password);
       if (response.success) {
         const { user: userData, token: authToken } = response.data;
         setUser(userData);
         setToken(authToken);
-        await AsyncStorage.setItem('authToken', authToken);
       } else {
         throw new Error(response.message || 'Giriş yapılamadı');
       }
@@ -73,12 +72,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (userData: any) => {
     try {
-      const response = await userService.register(userData);
+      const response = await authService.register(userData);
       if (response.success) {
         const { user: newUser, token: authToken } = response.data;
         setUser(newUser);
         setToken(authToken);
-        await AsyncStorage.setItem('authToken', authToken);
       } else {
         throw new Error(response.message || 'Kayıt yapılamadı');
       }
@@ -90,9 +88,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOutUser = async () => {
     try {
+      await authService.logout();
       setUser(null);
       setToken(null);
-      await AsyncStorage.removeItem('authToken');
     } catch (error) {
       console.error('SignOut error:', error);
     }
