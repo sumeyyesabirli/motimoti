@@ -67,10 +67,15 @@ export default function AddPostScreen() {
     
     // Debug: Kullanıcı bilgilerini kontrol et
     console.log('🔍🔍🔍 POST OLUŞTURMA DEBUG 🔍🔍🔍');
-    console.log('userId:', user?.id);
+    console.log('userId:', user?.id); // UUID: 550e8400-e29b-41d4-a716-446655440000
     console.log('userEmail:', user?.email);
     console.log('userName:', user?.username);
     console.log('tokenExists:', !!token);
+    console.log('postData:', {
+      text: postText.substring(0, 50) + '...',
+      authorName: userData.username,
+      isAnonymous: isAnonymous
+    });
     console.log('🔍🔍🔍 DEBUG SON 🔍🔍🔍');
     
     setLoading(true);

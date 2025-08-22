@@ -15,14 +15,14 @@ import { usePagination } from '../../hooks/usePagination';
 
 // Post type'ını tanımla
 interface Post {
-  id: string;
+  id: string; // UUID format: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
   text: string;
   authorName?: string;
-  authorId?: string;
+  authorId?: string; // UUID format: 550e8400-e29b-41d4-a716-446655440000
   createdAt: any;
-  likedBy?: string[];
+  likedBy?: string[]; // UUID array: ["550e8400-e29b-41d4-a716-446655440000", ...]
   likeCount?: number;
-  favoritedBy?: string[];
+  favoritedBy?: string[]; // UUID array: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", ...]
   favoriteCount?: number;
 }
 
@@ -156,12 +156,14 @@ export default function CommunityScreen() {
         success: response.success,
         postCount: response.data?.length || 0,
         posts: response.data?.map(post => ({
-          id: post.id,
+          id: post.id, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
           text: post.text?.substring(0, 50) + '...',
           authorName: post.authorName,
-          authorId: post.authorId,
+          authorId: post.authorId, // UUID: 550e8400-e29b-41d4-a716-446655440000
           likeCount: post.likeCount,
           favoriteCount: post.favoriteCount,
+          likedBy: post.likedBy?.slice(0, 3), // İlk 3 UUID'yi göster
+          favoritedBy: post.favoritedBy?.slice(0, 3), // İlk 3 UUID'yi göster
           createdAt: post.createdAt,
           isAnonymous: post.isAnonymous
         }))
@@ -219,9 +221,9 @@ export default function CommunityScreen() {
     if (!user) return;
     
     console.log('❤️ BEĞENI İŞLEMİ:', {
-      postId,
+      postId, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
       isLiked,
-      userId: user.id,
+      userId: user.id, // UUID: 550e8400-e29b-41d4-a716-446655440000
       action: isLiked ? 'ÇIKAR' : 'EKLE'
     });
     
@@ -246,11 +248,12 @@ export default function CommunityScreen() {
             const newLikeCount = Math.max(0, currentLikeCount - 1);
             
             console.log('📱 LOCAL STATE (Beğeni Çıkar):', {
-              postId,
+              postId, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
               eskiLikeCount: currentLikeCount,
               yeniLikeCount: newLikeCount,
-              eskiLikedBy: currentLikedBy,
-              yeniLikedBy: newLikedBy
+              eskiLikedBy: currentLikedBy.slice(0, 3), // İlk 3 UUID: ["550e8400-...", "a0eebc99-...", ...]
+              yeniLikedBy: newLikedBy.slice(0, 3),
+              toplamLikedByCount: `${currentLikedBy.length} → ${newLikedBy.length}`
             });
             
             return { ...post, likedBy: newLikedBy, likeCount: newLikeCount };
@@ -260,11 +263,13 @@ export default function CommunityScreen() {
             const newLikeCount = currentLikeCount + 1;
             
             console.log('📱 LOCAL STATE (Beğeni Ekle):', {
-              postId,
+              postId, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
               eskiLikeCount: currentLikeCount,
               yeniLikeCount: newLikeCount,
-              eskiLikedBy: currentLikedBy,
-              yeniLikedBy: newLikedBy
+              eskiLikedBy: currentLikedBy.slice(0, 3), // İlk 3 UUID: ["550e8400-...", "a0eebc99-...", ...]
+              yeniLikedBy: newLikedBy.slice(0, 3),
+              toplamLikedByCount: `${currentLikedBy.length} → ${newLikedBy.length}`,
+              eklenenUserId: user.id // UUID: 550e8400-e29b-41d4-a716-446655440000
             });
             
             return { ...post, likedBy: newLikedBy, likeCount: newLikeCount };
@@ -286,9 +291,9 @@ export default function CommunityScreen() {
     if (!user) return;
     
     console.log('⭐ FAVORİ İŞLEMİ:', {
-      postId,
+      postId, // UUID: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
       isFavorited,
-      userId: user.id,
+      userId: user.id, // UUID: 550e8400-e29b-41d4-a716-446655440000
       action: isFavorited ? 'ÇIKAR' : 'EKLE'
     });
     

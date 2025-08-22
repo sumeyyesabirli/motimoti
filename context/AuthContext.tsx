@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as authService from '../services/auth';
 
 interface UserData {
-  id: string;
+  id: string; // UUID format: 550e8400-e29b-41d4-a716-446655440000
   email: string;
   username?: string;
   displayName?: string;
