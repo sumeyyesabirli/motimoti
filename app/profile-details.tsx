@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { userService } from '../services/userService';
+import { getUserProfile, updateUserProfile } from '../services/users';
 
 export default function ProfileDetailsScreen() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function ProfileDetailsScreen() {
     const fetch = async () => {
       try {
         if (!user || !token) return;
-        const response = await userService.getUserProfile(user.id);
+        const response = await getUserProfile(user.id);
         if (isMounted && response.success) {
           const data = response.data;
           setUsername(data?.username ?? '');
@@ -49,7 +49,7 @@ export default function ProfileDetailsScreen() {
     }
     setSaving(true);
     try {
-      await userService.updateUserProfile(user.id, { 
+      await updateUserProfile(user.id, { 
         username, 
         age, 
         zodiac, 

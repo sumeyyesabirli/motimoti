@@ -1,6 +1,6 @@
 // hooks/usePagination.ts
 import { useState, useCallback } from 'react';
-import { postService } from '../services/postService';
+import { getPosts } from '../services/posts';
 
 interface UsePaginationOptions<T> {
   collectionName: string;
@@ -49,7 +49,7 @@ export function usePagination<T = any>({
       // API'den veri çek
       let response;
       if (collectionName === 'posts') {
-        response = await postService.getPosts();
+        response = await getPosts();
       } else {
         throw new Error(`Unknown collection: ${collectionName}`);
       }
@@ -117,7 +117,7 @@ export function usePagination<T = any>({
       // API'den tüm veriyi çek (cache'den)
       let response;
       if (collectionName === 'posts') {
-        response = await postService.getPosts();
+        response = await getPosts();
       } else {
         throw new Error(`Unknown collection: ${collectionName}`);
       }
@@ -193,7 +193,7 @@ export function usePagination<T = any>({
       // API'den veri çek
       let response;
       if (collectionName === 'posts') {
-        response = await postService.getPosts();
+        response = await getPosts();
       } else {
         throw new Error(`Unknown collection: ${collectionName}`);
       }

@@ -1,71 +1,100 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '../constants/api';
+import { API_BASE_URL, API_CONFIG } from '../constants/apiConfig';
 
+// Merkezi API instance oluştur
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 30 saniye timeout
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  }
+  timeout: API_CONFIG.timeout,
+  headers: API_CONFIG.headers
 });
 
+// Request interceptor - her istekte token ekle
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('authToken'); // Login sonrası kaydedeceğin key
+  // Auth token'i al ve header'a ekle [[memory:6945949]]
+  const token = await AsyncStorage.getItem('auth_token');
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
-  if (!config.headers?.['Content-Type']) {
-    config.headers = config.headers ?? {};
-    config.headers['Content-Type'] = 'application/json';
-  }
+  
+  // İsteği konsola yazdır [[memory:6945955]]
+  console.log('🚀 API İstek:', {
+    method: config.method?.toUpperCase(),
+    url: config.url,
+    baseURL: config.baseURL,
+    fullUrl: `${config.baseURL}${config.url}`,
+    hasAuth: !!token
+  });
+  
   return config;
 });
 
-// Global response interceptor (hata yakalama)
+// Response interceptor - cevap ve hata yönetimi
 api.interceptors.response.use(
-  (res) => {
-    console.log('✅ API Response başarılı:', {
-      url: res.config.url,
-      method: res.config.method,
-      status: res.status,
-      dataLength: JSON.stringify(res.data).length
+  (response) => {
+    // Başarılı cevabı konsola yazdır [[memory:6945955]]
+    console.log('✅ API Başarılı:', {
+      method: response.config.method?.toUpperCase(),
+      url: response.config.url,
+      status: response.status,
+      dataSize: JSON.stringify(response.data).length + ' bytes'
     });
-    return res;
+    return response;
   },
-  (err) => {
-    console.error('❌ API Hatası detaylı:', {
-      url: err.config?.url,
-      method: err.config?.method,
-      message: err.message,
-      code: err.code,
-      status: err.response?.status,
-      statusText: err.response?.statusText,
-      responseData: err.response?.data,
-      isNetworkError: err.message === 'Network Error',
-      isTimeoutError: err.code === 'ECONNABORTED'
+  async (error) => {
+    // Hataları konsola yazdır [[memory:6945955]]
+    console.error('❌ API Hatası:', {
+      method: error.config?.method?.toUpperCase(),
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.message,
+      errorData: error.response?.data
     });
     
-    const status = err?.response?.status;
-    if (status === 401) {
-      console.log('🔐 401: Token yok veya eksik');
-    }
-    if (status === 403) {
-      console.log('🚫 403: Token geçersiz veya yetki sorunu');
-    }
-    
-    // Network Error özel işlemi
-    if (err.message === 'Network Error') {
-      console.error('🌐 NETWORK ERROR! Backend sunucusuna bağlanamıyor:');
-      console.error('   📍 API URL:', err.config?.url);
-      console.error('   🔧 Kontroller:');
-      console.error('      - Backend sunucu çalışıyor mu?');
-      console.error('      - CORS ayarları yapıldı mı?');
-      console.error('      - Emülatör/device network erişimi var mı?');
+    // 401 hatası - token geçersiz, oturumu sonlandır
+    if (error.response?.status === 401) {
+      console.log('🔐 Token geçersiz, oturum sonlandırılıyor...');
+      await AsyncStorage.removeItem('auth_token');
+      // AuthContext logout fonksiyonu burada çağrılabilir
     }
     
-    return Promise.reject(err);
+    // Network hatası kontrolü
+    if (error.message === 'Network Error') {
+      console.error('🌐 Ağ bağlantı hatası! API sunucusuna erişilemiyor.');
+      console.error('🔧 Kontrol edilecekler:');
+      console.error('   - İnternet bağlantısı aktif mi?');
+      console.error('   - API sunucusu çalışıyor mu?');
+      console.error('   - Firewall/VPN engeli var mı?');
+    }
+    
+    return Promise.reject(error);
   }
 );
+
+// API helper fonksiyonları
+export const apiHelpers = {
+  // Base URL'yi döndür
+  getBaseUrl: () => API_BASE_URL,
+  
+  // Full URL oluştur
+  buildUrl: (endpoint) => `${API_BASE_URL}${endpoint}`,
+  
+  // Auth token kontrolü
+  hasValidToken: async () => {
+    const token = await AsyncStorage.getItem('auth_token');
+    return !!token;
+  },
+  
+  // Token'i manuel ekle/çıkar
+  setAuthToken: async (token) => {
+    if (token) {
+      await AsyncStorage.setItem('auth_token', token);
+    } else {
+      await AsyncStorage.removeItem('auth_token');
+    }
+  }
+};
+
+// Default export
+export default api;

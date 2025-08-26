@@ -1,5 +1,5 @@
 import { api } from './api';
-import { API_ENDPOINTS } from '../constants/api';
+import { API_ENDPOINTS } from '../constants/apiConfig';
 import { cacheService, CACHE_KEYS } from './cacheService';
 import Logger from '../utils/logger';
 

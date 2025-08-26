@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useTheme } from '../../context/ThemeContext';
-import { userService } from '../../services/userService';
+import { forgotPassword } from '../../services/auth';
 
 export default function ForgotPasswordScreen() {
   const { colors } = useTheme();
@@ -23,7 +23,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     try {
       // API'den şifre sıfırlama isteği gönder
-      await userService.forgotPassword(email);
+      await forgotPassword(email);
       showFeedback({ message: 'Sıfırlama bağlantısı gönderildi.', type: 'success' });
       router.back();
     } catch (error) {

@@ -5,9 +5,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useAuth } from '../../context/AuthContext';
 import { usePosts } from '../../context/PostsContext';
-import { postService } from '../../services/postService';
-import { userService } from '../../services/userService';
 import * as postsService from '../../services/posts';
+import { getUserProfile } from '../../services/users';
 import { SignOut, PencilSimple, User as UserIcon, UserCircle, Trash } from 'phosphor-react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useResponsive, useSafeArea, spacing, fontSizes, getPlatformShadow, borderRadius } from '../../hooks/useResponsive';
@@ -196,11 +195,11 @@ export default function ProfileScreen() {
       const fetchAllData = async () => {
         try {
           // Kullanıcı bilgilerini getir
-          const userProfile = await userService.getUserProfile(user.id);
+          const userProfile = await getUserProfile(user.id);
           setUserData(userProfile.data);
 
           // Kullanıcının gönderilerini getir (anonim olanları hariç)
-          const userPosts = await postService.getUserPosts(user.id);
+          const userPosts = await postsService.getUserPosts(user.id);
           
           // Kendi profilinde anonim paylaşımları gösterme
           const publicPosts = userPosts.data.filter(post => !post.isAnonymous);
@@ -286,7 +285,7 @@ export default function ProfileScreen() {
     if (!postToDelete || !token) return;
     
     try {
-      await postService.deletePost(postToDelete.id, token);
+      await postsService.deletePost(postToDelete.id);
       showFeedback({ message: 'Paylaşım başarıyla silindi!', type: 'success' });
       setDeleteModalVisible(false);
       setPostToDelete(null);
@@ -304,7 +303,7 @@ export default function ProfileScreen() {
     if (!editingId || !editingText.trim() || !token) return;
     
     try {
-      await postService.updatePost(editingId, { text: editingText.trim() }, token);
+      await postsService.updatePost(editingId, { text: editingText.trim() });
       showFeedback({ message: 'Paylaşım güncellendi', type: 'success' });
       
       // Posts listesini güncelle

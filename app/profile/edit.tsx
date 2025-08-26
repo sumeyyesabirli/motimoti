@@ -6,7 +6,7 @@ import { ActivityIndicator, FlatList, Modal, SafeAreaView, StyleSheet, Text, Tex
 import { useAuth } from '../../context/AuthContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useTheme } from '../../context/ThemeContext';
-import { userService } from '../../services/userService';
+import { getUserProfile, updateUserProfile } from '../../services/users';
 
 const zodiacSigns = ["Koç", "Boğa", "İkizler", "Yengeç", "Aslan", "Başak", "Terazi", "Akrep", "Yay", "Oğlak", "Kova", "Balık"];
 
@@ -64,7 +64,7 @@ export default function EditProfileScreen() {
     const loadUserData = async () => {
       if (user && token) {
         try {
-          const response = await userService.getUserProfile(user.id);
+          const response = await getUserProfile(user.id);
           if (response.success) {
             const data = response.data;
             setUsername(data.username || '');
@@ -105,7 +105,7 @@ export default function EditProfileScreen() {
         api: apiBirthDate
       });
       
-      await userService.updateUserProfile(user.id, {
+      await updateUserProfile(user.id, {
         username,
         birthDate: apiBirthDate,
         zodiac,
