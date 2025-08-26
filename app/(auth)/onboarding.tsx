@@ -43,7 +43,7 @@ export default function OnboardingScreen() {
         </View>
 
         <View style={styles.textContainer}>
-          <Text style={styles.title}>MOTIMOTI'ye Hoş Geldin!</Text>
+          <Text style={styles.title}>MOTIMOTI&apos;ye Hoş Geldin!</Text>
           <Text style={styles.subtitle}>
             Kişisel gelişim serüveninde sana eşlik edecek sevimli bir yoldaşın var.
           </Text>

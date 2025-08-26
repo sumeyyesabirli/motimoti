@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Star, ArrowLeft } from 'phosphor-react-native';
+import { Heart, ArrowLeft, Star } from 'phosphor-react-native';
 import React, { useEffect, useState } from 'react';
 import { 
   ActivityIndicator, 
@@ -8,8 +8,10 @@ import {
   StyleSheet, 
   Text, 
   TouchableOpacity, 
-  View 
+  View,
+  ScrollView 
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../context/ThemeContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +39,18 @@ export default function UserFavoritesScreen() {
   const router = useRouter();
   const [favoritePosts, setFavoritePosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Header animasyonu için
+  const headerOpacity = useSharedValue(1);
+  const headerHeight = useSharedValue(120);
+  
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: headerOpacity.value,
+      height: headerHeight.value,
+      transform: [{ translateY: headerHeight.value === 0 ? -30 : 0 }],
+    };
+  });
 
   const styles = React.useMemo(() => getStyles(colors), [colors]);
 
@@ -67,19 +81,50 @@ export default function UserFavoritesScreen() {
       } else {
         console.log('⚠️ Favorilerim API hatası:', response);
         showFeedback({ 
-          message: response.message || 'Favorilerim yüklenemedi', 
+          message: response.message || 'Favori postlarım yüklenemedi', 
           type: 'error' 
         });
       }
       
     } catch (error) {
-      console.error('❌ Favorilerim API hatası:', error);
+      console.error('❌ Favori postlarım API hatası:', error);
       showFeedback({ 
-        message: 'Favorilerim yüklenemedi', 
+        message: 'Favori postlarım yüklenemedi', 
         type: 'error' 
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Scroll handler - header'ı gizle/göster
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    
+    if (offsetY > 80) {
+      // Header'ı gizle
+      headerOpacity.value = withSpring(0, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+      headerHeight.value = withSpring(0, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+    } else {
+      // Header'ı göster
+      headerOpacity.value = withSpring(1, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+      headerHeight.value = withSpring(120, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
     }
   };
 
@@ -92,52 +137,68 @@ export default function UserFavoritesScreen() {
     }
   };
 
-  const renderPostItem = ({ item }: { item: Post }) => (
-    <View style={styles.postItem}>
-      <View style={styles.postHeader}>
-        <TouchableOpacity 
-          style={styles.authorInfo}
-          onPress={() => {
-            if (item.authorId) {
-              router.push(`/user-posts/${item.authorId}`);
-            }
-          }}
-        >
-          <View style={styles.authorAvatar}>
-            <Text style={styles.authorAvatarText}>
-              {item.isAnonymous ? '🎭' : (item.authorName || 'A').charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <View>
-            <Text style={styles.authorName}>
-              {item.authorName || 'Anonim'}
-            </Text>
-            <Text style={styles.postDate}>
-              {timeAgo(item.createdAt)}
-            </Text>
-          </View>
-        </TouchableOpacity>
+  const renderPostItem = ({ item }: { item: Post }) => {
+    // Debug: API'den gelen sayıları kontrol et
+    console.log('🎴 Favorite Page Post:', {
+      id: item.id.substring(0, 8) + '...',
+      likeCount: item.likeCount,
+      favoriteCount: item.favoriteCount,
+      likedByLength: item.likedBy?.length,
+      favoritedByLength: item.favoritedBy?.length
+    });
+    
+    // Array uzunluğu varsa onu kullan, yoksa API'den gelen count'u kullan
+    const actualLikeCount = item.likedBy?.length ?? item.likeCount ?? 0;
+    const actualFavoriteCount = item.favoritedBy?.length ?? item.favoriteCount ?? 0;
+    
+    return (
+      <View key={item.id} style={styles.postItem}>
+        <View style={styles.postHeader}>
+          <TouchableOpacity 
+            style={styles.authorInfo}
+            onPress={() => {
+              if (item.authorId) {
+                router.push(`/user-posts/${item.authorId}`);
+              }
+            }}
+          >
+            <View style={styles.authorAvatar}>
+              <Text style={styles.authorAvatarText}>
+                {item.isAnonymous ? '🎭' : (item.authorName || 'A').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.authorName}>
+                {item.authorName || 'Anonim'}
+              </Text>
+              <Text style={styles.postDate}>
+                {timeAgo(item.createdAt)}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          
+          {item.isAnonymous && (
+            <View style={styles.anonBadge}>
+              <Text style={styles.anonBadgeText}>Anonim</Text>
+            </View>
+          )}
+        </View>
         
-        {item.isAnonymous && (
-          <View style={styles.anonBadge}>
-            <Text style={styles.anonBadgeText}>Anonim</Text>
+        <Text style={styles.postText}>{item.text}</Text>
+        
+        <View style={styles.postStats}>
+          <View style={styles.statItem}>
+            <Heart size={16} color={colors.header} weight="fill" />
+            <Text style={styles.statText}>{actualLikeCount}</Text>
           </View>
-        )}
-      </View>
-      
-      <Text style={styles.postText}>{item.text}</Text>
-      
-      <View style={styles.postStats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statText}>❤️ {item.likeCount || 0}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Star size={16} color="#FFD700" weight="fill" />
-          <Text style={styles.statText}>{item.favoriteCount || 0}</Text>
+          <View style={styles.statItem}>
+            <Star size={16} color="#FFD700" weight="fill" />
+            <Text style={styles.statText}>{actualFavoriteCount}</Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -159,37 +220,44 @@ export default function UserFavoritesScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={colors.textDark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Favorilerim</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <View style={styles.summaryInfo}>
-        <Star size={20} color="#FFD700" weight="fill" />
-        <Text style={styles.summaryText}>
-          {favoritePosts.length} paylaşım favoriledin
-        </Text>
-      </View>
-
-      <FlatList
-        data={favoritePosts}
-        renderItem={renderPostItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+      <ScrollView 
+        style={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Star size={48} color={colors.textMuted} weight="regular" />
-            <Text style={styles.emptyText}>Henüz hiçbir paylaşım favorilemedin</Text>
-            <Text style={styles.emptySubtext}>
-              Topluluk alanında paylaşımları favorilerine eklemeye başla!
-            </Text>
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <ArrowLeft size={24} color={colors.textDark} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Favorilerim</Text>
+            <View style={styles.placeholder} />
           </View>
-        }
-      />
+        </Animated.View>
+
+        <View style={styles.summaryInfo}>
+          <Star size={20} color="#FFD700" weight="fill" />
+          <Text style={styles.summaryText}>
+            {favoritePosts.length} paylaşım favoriledin
+          </Text>
+        </View>
+
+        <View style={styles.contentContainer}>
+          {favoritePosts.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Star size={48} color={colors.textMuted} weight="regular" />
+              <Text style={styles.emptyText}>Henüz hiçbir paylaşım favorilemedin</Text>
+              <Text style={styles.emptySubtext}>
+                Topluluk alanında paylaşımları favorilemeye başla!
+              </Text>
+            </View>
+          ) : (
+            favoritePosts.map((item) => renderPostItem({ item }))
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -197,6 +265,12 @@ export default function UserFavoritesScreen() {
 const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  headerContainer: {
     backgroundColor: colors.background,
   },
   header: {
@@ -243,9 +317,9 @@ const getStyles = (colors: any) => StyleSheet.create({
     color: colors.textDark,
     marginLeft: 8,
   },
-  listContainer: {
+  contentContainer: {
     paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingTop: 10,
   },
   postItem: {
     backgroundColor: colors.card,

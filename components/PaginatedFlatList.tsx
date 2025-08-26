@@ -1,6 +1,6 @@
 // components/PaginatedFlatList.tsx
 import React from 'react';
-import { FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { FlatList, ActivityIndicator } from 'react-native';
 
 interface PaginatedFlatListProps<T> {
   data: T[];

@@ -1,6 +1,7 @@
 // app/(tabs)/profile.tsx
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, FlatList, Platform, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, FlatList, Platform, Modal, TextInput, ScrollView } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useAuth } from '../../context/AuthContext';
@@ -9,7 +10,7 @@ import * as postsService from '../../services/posts';
 import { getUserProfile } from '../../services/users';
 import { SignOut, PencilSimple, User as UserIcon, UserCircle, Trash } from 'phosphor-react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
-import { useResponsive, useSafeArea, spacing, fontSizes, getPlatformShadow, borderRadius } from '../../hooks/useResponsive';
+import { useResponsive, useSafeArea, getPlatformShadow } from '../../hooks/useResponsive';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 // Profildeki küçük yazı kartları
@@ -158,6 +159,18 @@ export default function ProfileScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [postToDelete, setPostToDelete] = useState<any>(null);
 
+  // Header animasyonu için
+  const headerOpacity = useSharedValue(1);
+  const headerHeight = useSharedValue(250); // Profile header'ın başlangıç yüksekliği - artırıldı
+  
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: headerOpacity.value,
+      height: headerHeight.value,
+      transform: [{ translateY: headerHeight.value === 0 ? -50 : 0 }],
+    };
+  });
+
   const styles = useMemo(() => getStyles(colors, safeTop, safeBottom, isSmallDevice, isTablet), [colors, safeTop, safeBottom, isSmallDevice, isTablet]);
   
   // Global postlardan gerçek zamanlı istatistikleri hesapla
@@ -253,33 +266,7 @@ export default function ProfileScreen() {
     }, [user, token, showFeedback])
   );
 
-  const renderContent = () => {
-    if (loading) return <ActivityIndicator size="large" color={colors.primaryButton} style={{ marginTop: 40 }} />;
-    if (posts.length === 0) return <Text style={styles.emptyText}>Henüz bir paylaşımın yok.</Text>;
-    
-    return (
-      <FlatList
-        data={posts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ProfilePostCard 
-            item={item} 
-            colors={colors} 
-            onEdit={(id, currentText) => {
-              setEditingId(id);
-              setEditingText(currentText);
-            }}
-            onDelete={(id) => {
-              setPostToDelete(item);
-              setDeleteModalVisible(true);
-            }}
-          />
-        )}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
-      />
-    );
-  };
+
 
   const handleDelete = useCallback(async () => {
     if (!postToDelete || !token) return;
@@ -323,33 +310,92 @@ export default function ProfileScreen() {
     }
   };
 
+  // Scroll handler - header'ı gizle/göster
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    
+    if (offsetY > 100) {
+      // Header'ı gizle
+      headerOpacity.value = withSpring(0, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+      headerHeight.value = withSpring(0, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+    } else {
+      // Header'ı göster
+      headerOpacity.value = withSpring(1, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+      headerHeight.value = withSpring(250, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <View style={styles.avatar}>
-          <UserIcon size={isSmallDevice ? 32 : 40} color={colors.header} weight="fill" />
+      <ScrollView 
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+          <View style={styles.header}>
+            <View style={styles.avatar}>
+              <UserIcon size={isSmallDevice ? 32 : 40} color={colors.header} weight="fill" />
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.name}>{userData?.username || user?.username || 'Kullanıcı'}</Text>
+              <Text style={styles.email}>{user?.email}</Text>
+            </View>
+            <Link href="/profile/edit" asChild>
+              <TouchableOpacity style={styles.editButton}>
+                <PencilSimple size={isSmallDevice ? 18 : 20} color={colors.textDark} />
+              </TouchableOpacity>
+            </Link>
+          </View>
+
+          <View style={styles.statsContainer}>
+            <StatMinimal stats={stats} colors={colors} router={router} />
+          </View>
+        </Animated.View>
+
+        <View style={styles.contentContainer}>
+          <Text style={styles.sectionTitle}>Paylaşımların</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color={colors.primaryButton} style={{ marginTop: 40 }} />
+          ) : posts.length === 0 ? (
+            <Text style={styles.emptyText}>Henüz bir paylaşımın yok.</Text>
+          ) : (
+            posts.map((item) => (
+              <ProfilePostCard 
+                key={item.id}
+                item={item} 
+                colors={colors} 
+                onEdit={(id, currentText) => {
+                  setEditingId(id);
+                  setEditingText(currentText);
+                }}
+                onDelete={(id) => {
+                  setPostToDelete(item);
+                  setDeleteModalVisible(true);
+                }}
+              />
+            ))
+          )}
         </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.name}>{userData?.username || user?.username || 'Kullanıcı'}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
-        </View>
-        <Link href="/profile/edit" asChild>
-          <TouchableOpacity style={styles.editButton}>
-            <PencilSimple size={isSmallDevice ? 18 : 20} color={colors.textDark} />
-          </TouchableOpacity>
-        </Link>
-      </View>
-
-      <View style={styles.statsContainer}>
-        <StatMinimal stats={stats} colors={colors} router={router} />
-      </View>
-
-
-
-      <View style={styles.contentContainer}>
-        <Text style={styles.sectionTitle}>Paylaşımların</Text>
-        {renderContent()}
-      </View>
+      </ScrollView>
     
       <TouchableOpacity style={styles.signOutButton} onPress={signOutUser}>
         <SignOut size={isSmallDevice ? 18 : 20} color="#D9534F" />
@@ -412,6 +458,12 @@ const getStyles = (colors: any, safeTop: number, safeBottom: number, isSmallDevi
     backgroundColor: colors.background,
     paddingTop: Platform.OS === 'ios' ? 0 : safeTop,
   },
+  scrollContainer: {
+    flex: 1,
+  },
+  headerContainer: {
+    backgroundColor: colors.background,
+  },
   header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
@@ -458,7 +510,6 @@ const getStyles = (colors: any, safeTop: number, safeBottom: number, isSmallDevi
   },
 
   contentContainer: { 
-    flex: 1, 
     paddingHorizontal: 24, 
     paddingTop: 10,
   },
@@ -509,7 +560,7 @@ const getStyles = (colors: any, safeTop: number, safeBottom: number, isSmallDevi
     marginHorizontal: 24, 
     borderRadius: 12, 
     marginTop: 'auto',
-    marginBottom: Platform.OS === 'ios' ? safeBottom + 10 : 10,
+    marginBottom: Platform.OS === 'ios' ? safeBottom + 90 : 90,
     backgroundColor: colors.card,
     ...getPlatformShadow(2, colors.shadow),
   },

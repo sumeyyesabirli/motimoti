@@ -10,6 +10,7 @@ import {
   TouchableOpacity, 
   View 
 } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useAuth } from '../../context/AuthContext';
@@ -44,6 +45,18 @@ export default function UserPostsScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Header animasyonu için
+  const headerOpacity = useSharedValue(1);
+  const headerHeight = useSharedValue(120);
+  
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: headerOpacity.value,
+      height: headerHeight.value,
+      transform: [{ translateY: headerHeight.value === 0 ? -30 : 0 }],
+    };
+  });
 
   const styles = React.useMemo(() => getStyles(colors), [colors]);
 
@@ -124,6 +137,37 @@ export default function UserPostsScreen() {
     }
   };
 
+  // Scroll handler - header'ı gizle/göster
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    
+    if (offsetY > 80) {
+      // Header'ı gizle
+      headerOpacity.value = withSpring(0, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+      headerHeight.value = withSpring(0, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+    } else {
+      // Header'ı göster
+      headerOpacity.value = withSpring(1, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+      headerHeight.value = withSpring(120, { 
+        damping: 20, 
+        stiffness: 80,
+        mass: 0.8
+      });
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('tr-TR', {
@@ -191,39 +235,43 @@ export default function UserPostsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={colors.textDark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paylaşımlar</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color={colors.textDark} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Paylaşımlar</Text>
+          <View style={styles.placeholder} />
+        </View>
 
-      <View style={styles.userInfo}>
-        <View style={styles.userAvatar}>
-          <Text style={styles.userAvatarText}>
-            {(userProfile?.displayName || userProfile?.username)?.charAt(0).toUpperCase()}
-          </Text>
+        <View style={styles.userInfo}>
+          <View style={styles.userAvatar}>
+            <Text style={styles.userAvatarText}>
+              {(userProfile?.displayName || userProfile?.username)?.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.userDetails}>
+            <Text style={styles.userName}>
+              {userProfile?.displayName || userProfile?.username}
+            </Text>
+            <Text style={styles.userHandle}>
+              @{userProfile?.username}
+            </Text>
+            <Text style={styles.postCount}>
+              {posts.length} paylaşım
+            </Text>
+          </View>
         </View>
-        <View style={styles.userDetails}>
-          <Text style={styles.userName}>
-            {userProfile?.displayName || userProfile?.username}
-          </Text>
-          <Text style={styles.userHandle}>
-            @{userProfile?.username}
-          </Text>
-          <Text style={styles.postCount}>
-            {posts.length} paylaşım
-          </Text>
-        </View>
-      </View>
+      </Animated.View>
 
       <FlatList
         data={posts}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[styles.listContainer, { paddingTop: 130 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <User size={48} color={colors.textMuted} weight="regular" />
@@ -239,6 +287,20 @@ const getStyles = (colors: any) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: colors.background,
+    overflow: 'hidden',
+    shadowColor: colors.shadow || '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   header: {
     flexDirection: 'row',

@@ -47,7 +47,6 @@ export default function LoginScreen() {
   }, []);
 
   const handleSignIn = async () => {
-    console.log('handleSignIn called with:', email, password); // Debug için
     if (!email || !password) {
       showFeedback({ message: 'Lütfen tüm alanları doldurun.', type: 'error' });
       return;
@@ -55,10 +54,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      console.log('Calling signIn from AuthContext...'); // Debug için
-      // AuthContext'teki signIn fonksiyonunu kullan
       await signIn(email, password);
-      console.log('signIn successful!'); // Debug için
       
       if (rememberMe) {
         await AsyncStorage.setItem('remember_me', 'true');
@@ -70,11 +66,8 @@ export default function LoginScreen() {
         await SecureStore.deleteItemAsync('remember_password');
       }
 
-      // Giriş başarılı, ana sayfaya yönlendir
-      console.log('Redirecting to tabs...'); // Debug için
       router.replace('/(tabs)');
     } catch (error) {
-      console.error('SignIn error:', error); // Debug için
       showFeedback({ message: 'Test modu: Herhangi bir e-posta ve şifre ile giriş yapabilirsin!', type: 'error' });
     } finally {
       setLoading(false);

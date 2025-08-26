@@ -25,13 +25,57 @@ interface TabBarProps {
   navigation: any;
 }
 
+// Tab Bar Item Bileşeni
+const TabBarItem = ({ route, index, isFocused, navigation, activeIndex, horizontalPosition, colors }: any) => {
+  const Icon = index === 0 ? House : (index === 1 ? BookOpen : (index === 2 ? Users : User));
+  
+  // İkonun yukarı/aşağı hareket animasyonu
+  const animatedIconStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateY: withSpring(activeIndex.value === index ? -15 : 0, { 
+          damping: 25, 
+          stiffness: 200,
+          mass: 0.8
+        }) }
+      ],
+    };
+  });
+
+  const onPress = React.useCallback(() => {
+    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!isFocused && !event.defaultPrevented) {
+      navigation.navigate(route.name);
+      activeIndex.value = index;
+      horizontalPosition.value = withSpring(index * TAB_WIDTH, { 
+        damping: 20, 
+        stiffness: 100,
+        mass: 1
+      });
+    }
+  }, [isFocused, navigation, route.key, route.name, index, activeIndex, horizontalPosition]);
+
+  const styles = getStyles(colors);
+
+  return (
+    <Animated.View style={[styles.tabItem, animatedIconStyle]}>
+      <TouchableOpacity onPress={onPress} style={styles.touchable}>
+        <Icon
+          size={28}
+          color={isFocused ? colors.primaryButton : colors.textMuted}
+          weight={isFocused ? 'fill' : 'regular'}
+        />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 // Özel Tab Bar Bileşeni
 const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
   const { colors } = useTheme(); // Renkleri temadan al
   const { bottom } = useSafeAreaInsets();
   const activeIndex = useSharedValue(state.index);
   const horizontalPosition = useSharedValue(state.index * TAB_WIDTH);
-
 
   // State değiştiğinde animasyonları güncelle
   React.useEffect(() => {
@@ -42,7 +86,7 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
       mass: 1,
       velocity: 0
     });
-  }, [state.index]);
+  }, [state.index, activeIndex, horizontalPosition]);
 
 
 
@@ -75,48 +119,18 @@ const CustomTabBar = ({ state, descriptors, navigation }: TabBarProps) => {
         <AnimatedPath fill={colors.card} animatedProps={animatedPathStyle} />
       </Svg>
 
-      {state.routes.map((route: any, index: number) => {
-        const isFocused = state.index === index;
-        const Icon = index === 0 ? House : (index === 1 ? BookOpen : (index === 2 ? Users : User));
-        
-        // İkonun yukarı/aşağı hareket animasyonu
-        const animatedIconStyle = useAnimatedStyle(() => {
-          return {
-            transform: [
-              { translateY: withSpring(activeIndex.value === index ? -15 : 0, { 
-                damping: 25, 
-                stiffness: 200,
-                mass: 0.8
-              }) }
-            ],
-          };
-        });
-
-        const onPress = React.useCallback(() => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-            activeIndex.value = index;
-            horizontalPosition.value = withSpring(index * TAB_WIDTH, { 
-              damping: 20, 
-              stiffness: 100,
-              mass: 1
-            });
-          }
-        }, [isFocused, navigation, route.key, route.name, index]);
-
-        return (
-          <Animated.View key={route.key} style={[styles.tabItem, animatedIconStyle]}>
-            <TouchableOpacity onPress={onPress} style={styles.touchable}>
-                             <Icon
-                 size={28}
-                 color={isFocused ? colors.primaryButton : colors.textMuted}
-                 weight={isFocused ? 'fill' : 'regular'}
-               />
-            </TouchableOpacity>
-          </Animated.View>
-        );
-      })}
+      {state.routes.map((route: any, index: number) => (
+        <TabBarItem 
+          key={route.key}
+          route={route}
+          index={index}
+          isFocused={state.index === index}
+          navigation={navigation}
+          activeIndex={activeIndex}
+          horizontalPosition={horizontalPosition}
+          colors={colors}
+        />
+      ))}
     </View>
   );
 };
