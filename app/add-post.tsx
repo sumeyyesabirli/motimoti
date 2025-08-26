@@ -2,12 +2,13 @@
 import { useRouter } from 'expo-router';
 import * as postsService from '../services/posts';
 import * as usersService from '../services/users';
-import { CaretLeft, User, UserCircle } from 'phosphor-react-native';
+import { CaretLeft, UserCircle } from 'phosphor-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePosts } from '../context/PostsContext';
 
 
 // 3 haneli rastgele kod üreten fonksiyon
@@ -31,6 +32,7 @@ export default function AddPostScreen() {
   const { colors } = useTheme();
   const { user, token } = useAuth();
   const { showFeedback } = useFeedback();
+  const { addPost } = usePosts();
   const router = useRouter();
   const [postText, setPostText] = useState('');
   const [userData, setUserData] = useState({ username: 'Anonim', anonymousName: '' });
@@ -65,18 +67,13 @@ export default function AddPostScreen() {
       return;
     }
     
-    // Debug: Kullanıcı bilgilerini kontrol et
-    console.log('🔍🔍🔍 POST OLUŞTURMA DEBUG 🔍🔍🔍');
-    console.log('userId:', user?.id); // UUID: 550e8400-e29b-41d4-a716-446655440000
-    console.log('userEmail:', user?.email);
-    console.log('userName:', user?.username);
-    console.log('tokenExists:', !!token);
-    console.log('postData:', {
-      text: postText.substring(0, 50) + '...',
-      authorName: userData.username,
-      isAnonymous: isAnonymous
-    });
-    console.log('🔍🔍🔍 DEBUG SON 🔍🔍🔍');
+    // Debug: Kullanıcı bilgilerini kontrol et [[memory:6945955]]
+    console.log('📱 POST OLUŞTURMA İSTEĞİ');
+    console.log('✅ User ID:', user?.id);
+    console.log('✅ Token mevcut:', !!token);
+    console.log('✅ Post metni uzunluğu:', postText.length);
+    console.log('✅ Anonim paylaşım:', isAnonymous);
+    console.log('✅ Author name:', userData.username);
     
     setLoading(true);
     try {
@@ -96,108 +93,37 @@ export default function AddPostScreen() {
       }
 
       // Post oluştur - API'nin beklediği format
-      await postsService.createPost({
+      const response = await postsService.createPost({
         text: postText,
         authorId: user!.id,
         authorName: authorNameToSave,
         isAnonymous: isAnonymous
       });
       
-      showFeedback({ message: 'Paylaşımınız başarıyla eklendi!', type: 'success' });
-      router.back();
-    } catch (_) {
-      showFeedback({ message: 'Yazınız paylaşılamadı.', type: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Test için birden fazla gönderi oluştur
-  const createTestPosts = async () => {
-    if (!user || !token) return;
-    
-    try {
-      setLoading(true); // Use loading for test posts as well
-      const testTexts = [
-        'Bu bir test gönderisidir. API pagination testi için oluşturuldu.',
-        'İkinci test gönderisi. Daha fazla veri için gerekli.',
-        'Üçüncü test gönderisi. Sayfa sayfa yükleme testi.',
-        'Dördüncü test gönderisi. Scroll sonunda yeni veri yükleme.',
-        'Beşinci test gönderisi. API pagination testi.',
-        'Altıncı test gönderisi. usePagination hook testi.',
-        'Yedinci test gönderisi. PaginatedFlatList component testi.',
-        'Sekizinci test gönderisi. 10 gönderi sonrası yeni sayfa.',
-        'Dokuzuncu test gönderisi. Aşağı çekme ile veri yükleme.',
-        'Onuncu test gönderisi. Otomatik pagination sistemi.',
-        'On birinci test gönderisi. API query optimization.',
-        'On ikinci test gönderisi. React Native performance.',
-        'On üçüncü test gönderisi. FlatList optimization.',
-        'On dördüncü test gönderisi. Memory management.',
-        'On beşinci test gönderisi. State management.',
-        'On altıncı test gönderisi. Hook optimization.',
-        'On yedinci test gönderisi. Component reusability.',
-        'On sekizinci test gönderisi. TypeScript support.',
-        'On dokuzuncu test gönderisi. Error handling.',
-        'Yirminci test gönderisi. Loading states.',
-        'Yirmi birinci test gönderisi. Refresh functionality.',
-        'Yirmi ikinci test gönderisi. End reached handling.',
-        'Yirmi üçüncü test gönderisi. HasMore flag.',
-        'Yirmi dördüncü test gönderisi. LastDoc tracking.',
-        'Yirmi beşinci test gönderisi. Page size management.',
-        'Yirmi altıncı test gönderisi. Query constraints.',
-        'Yirmi yedinci test gönderisi. Order by field.',
-        'Yirmi sekizinci test gönderisi. Direction control.',
-        'Yirmi dokuzuncu test gönderisi. Collection name.',
-        'Otuzuncu test gönderisi. API integration.',
-        'Otuz birinci test gönderisi. Real-time updates.',
-        'Otuz ikinci test gönderisi. Offline support.',
-        'Otuz üçüncü test gönderisi. Data persistence.',
-        'Otuz dördüncü test gönderisi. Cache management.',
-        'Otuz beşinci test gönderisi. Network optimization.',
-        'Otuz altıncı test gönderisi. Bundle size.',
-        'Otuz yedinci test gönderisi. Tree shaking.',
-        'Otuz sekizinci test gönderisi. Code splitting.',
-        'Otuz dokuzuncu test gönderisi. Lazy loading.',
-        'Kırkıncı test gönderisi. Performance monitoring.',
-        'Kırk birinci test gönderisi. Sayfa 5 için gerekli.',
-        'Kırk ikinci test gönderisi. 10\'ar 10\'ar yükleme.',
-        'Kırk üçüncü test gönderisi. Numaralı sayfalama.',
-        'Kırk dördüncü test gönderisi. 1,2,3,4,5 sayfalar.',
-        'Kırk beşinci test gönderisi. Her sayfa 10 gönderi.',
-        'Kırk altıncı test gönderisi. Toplam 50 gönderi.',
-        'Kırk yedinci test gönderisi. Test verisi.',
-        'Kırk sekizinci test gönderisi. Pagination test.',
-        'Kırk dokuzuncu test gönderisi. Son test gönderisi.',
-        'Ellinci test gönderisi. Tamamlandı!'
-      ];
-
-      for (let i = 0; i < testTexts.length; i++) {
-        const postData = {
-          text: testTexts[i],
-          authorId: user.id,
-          authorName: user.email?.split('@')[0] || 'Test User',
-          likeCount: Math.floor(Math.random() * 10),
+      // Yeni postu global state'e ekle (otomatik yenileme için)
+      if (response.success && response.data) {
+        const newPost = {
+          id: response.data.id,
+          text: postText,
+          authorName: authorNameToSave,
+          authorId: isAnonymous ? null : user!.id, // Anonim paylaşımlarda authorId'yi gizle
+          createdAt: new Date().toISOString(),
           likedBy: [],
-          favoriteCount: Math.floor(Math.random() * 5),
+          likeCount: 0,
           favoritedBy: [],
-          isAnonymous: false
+          favoriteCount: 0,
+          isAnonymous: isAnonymous
         };
-
-        await postService.createPost(postData, token);
-        console.log(`Test post ${i + 1} created`);
+        
+        addPost(newPost);
+        console.log('➕ Yeni post global state\'e eklendi:', newPost.id);
       }
-
-      showFeedback({ 
-        message: `${testTexts.length} test gönderisi oluşturuldu!`, 
-        type: 'info' 
-      });
       
+      showFeedback({ message: 'Paylaşımınız başarıyla eklendi!', type: 'success' });
+      router.replace('/(tabs)/community');
     } catch (error) {
-      console.error('Error creating test posts:', error);
-      showFeedback({ 
-        message: 'Test gönderileri oluşturulurken hata oluştu', 
-        type: 'error' 
-      });
+      console.error('Post oluşturma hatası:', error);
+      showFeedback({ message: 'Yazınız paylaşılamadı.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -214,19 +140,6 @@ export default function AddPostScreen() {
           <Text style={styles.shareButtonText}>Paylaş</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Test butonu - yukarı taşındı, sadece development'ta göster */}
-      {__DEV__ && (
-        <TouchableOpacity 
-          style={[styles.testButton, loading && styles.testButtonDisabled]} 
-          onPress={createTestPosts}
-          disabled={loading}
-        >
-          <Text style={styles.testButtonText}>
-            {loading ? 'Oluşturuluyor...' : '50 Test Gönderisi Oluştur'}
-          </Text>
-        </TouchableOpacity>
-      )}
 
       <View style={styles.anonymousToggleContainer}>
         <View style={styles.anonymousInfo}>
@@ -389,21 +302,5 @@ const getStyles = (colors: any) => StyleSheet.create({
     },
     submitButtonDisabled: {
       opacity: 0.6,
-    },
-    testButton: {
-      backgroundColor: '#FF6B6B',
-      padding: 15,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginTop: 10,
-      marginHorizontal: 24,
-    },
-    testButtonDisabled: {
-      opacity: 0.6,
-    },
-    testButtonText: {
-      fontFamily: 'Nunito-Bold',
-      color: '#FFFFFF',
-      fontSize: 16,
     },
   });

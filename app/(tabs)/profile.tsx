@@ -4,10 +4,12 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicat
 import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useAuth } from '../../context/AuthContext';
+import { usePosts } from '../../context/PostsContext';
 import { postService } from '../../services/postService';
 import { userService } from '../../services/userService';
+import * as postsService from '../../services/posts';
 import { SignOut, PencilSimple, User as UserIcon, UserCircle, Trash } from 'phosphor-react-native';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useResponsive, useSafeArea, spacing, fontSizes, getPlatformShadow, borderRadius } from '../../hooks/useResponsive';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
@@ -62,7 +64,7 @@ const ProfilePostCard = ({ item, colors, onEdit, onDelete }: { item: any; colors
 };
 
 // Twitter tarzı minimal istatistikler
-const StatMinimal = ({ stats, colors }: { stats: any; colors: any }) => {
+const StatMinimal = ({ stats, colors, router }: { stats: any; colors: any; router: any }) => {
   return (
     <View style={{
       backgroundColor: colors.card,
@@ -93,7 +95,13 @@ const StatMinimal = ({ stats, colors }: { stats: any; colors: any }) => {
           height: '80%',
           backgroundColor: colors.textMuted + '22',
         }} />
-        <View style={{ alignItems: 'center' }}>
+        <TouchableOpacity 
+          style={{ alignItems: 'center' }}
+          onPress={() => {
+            console.log('📊 Beğendiklerim sayfasına gidiliyor');
+            router.push('/user-likes');
+          }}
+        >
           <Text style={{
             fontFamily: 'Nunito-ExtraBold',
             fontSize: 18,
@@ -102,15 +110,21 @@ const StatMinimal = ({ stats, colors }: { stats: any; colors: any }) => {
           <Text style={{
             fontFamily: 'Nunito-SemiBold',
             fontSize: 14,
-            color: colors.textMuted,
-          }}>Beğeni</Text>
-        </View>
+            color: colors.primaryButton,
+          }}>Beğendiklerim</Text>
+        </TouchableOpacity>
         <View style={{
           width: 1,
           height: '80%',
           backgroundColor: colors.textMuted + '22',
         }} />
-        <View style={{ alignItems: 'center' }}>
+        <TouchableOpacity 
+          style={{ alignItems: 'center' }}
+          onPress={() => {
+            console.log('📊 Favorilerim sayfasına gidiliyor');
+            router.push('/user-favorites');
+          }}
+        >
           <Text style={{
             fontFamily: 'Nunito-ExtraBold',
             fontSize: 18,
@@ -119,9 +133,9 @@ const StatMinimal = ({ stats, colors }: { stats: any; colors: any }) => {
           <Text style={{
             fontFamily: 'Nunito-SemiBold',
             fontSize: 14,
-            color: colors.textMuted,
-          }}>Favori</Text>
-        </View>
+            color: colors.primaryButton,
+          }}>Favorilerim</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -131,6 +145,8 @@ export default function ProfileScreen() {
   const { colors } = useTheme();
   const { user, token, signOutUser } = useAuth();
   const { showFeedback, showConfirm } = useFeedback();
+  const router = useRouter();
+  const { posts: globalPosts } = usePosts();
   const { top: safeTop, bottom: safeBottom } = useSafeArea();
   const { isSmallDevice, isTablet } = useResponsive();
   
@@ -145,6 +161,32 @@ export default function ProfileScreen() {
 
   const styles = useMemo(() => getStyles(colors, safeTop, safeBottom, isSmallDevice, isTablet), [colors, safeTop, safeBottom, isSmallDevice, isTablet]);
   
+  // Global postlardan gerçek zamanlı istatistikleri hesapla
+  useMemo(() => {
+    if (!user || !globalPosts.length) return;
+    
+    const userLikedCount = globalPosts.filter(post => 
+      post.likedBy?.includes(user.id)
+    ).length;
+    
+    const userFavoriteCount = globalPosts.filter(post => 
+      post.favoritedBy?.includes(user.id)
+    ).length;
+    
+    console.log('🔄 Gerçek zamanlı istatistik güncelleme:', {
+      userLikedCount,
+      userFavoriteCount,
+      globalPostsCount: globalPosts.length
+    });
+    
+    setStats(prevStats => ({
+      ...prevStats,
+      likeCount: userLikedCount,
+      favoriteCount: userFavoriteCount
+    }));
+    
+  }, [globalPosts, user]);
+  
   useFocusEffect(
     useCallback(() => {
       if (!user || !token) return;
@@ -157,20 +199,48 @@ export default function ProfileScreen() {
           const userProfile = await userService.getUserProfile(user.id);
           setUserData(userProfile.data);
 
-          // Kullanıcının gönderilerini getir
+          // Kullanıcının gönderilerini getir (anonim olanları hariç)
           const userPosts = await postService.getUserPosts(user.id);
-          setPosts(userPosts.data);
-
-          // İstatistikleri hesapla
-          let totalLikes = 0;
-          userPosts.data.forEach((post: any) => {
-            totalLikes += post.likeCount || 0;
+          
+          // Kendi profilinde anonim paylaşımları gösterme
+          const publicPosts = userPosts.data.filter(post => !post.isAnonymous);
+          
+          console.log('🔍 Profile post filtreleme:', {
+            toplam: userPosts.data.length,
+            anonimKendi: userPosts.data.filter(p => p.isAnonymous).length,
+            publicGosterilen: publicPosts.length
           });
+          
+          setPosts(publicPosts);
+
+          // İstatistikleri hesapla - kullanıcının beğeni ve favori sayıları
+          // API'den gerçek beğeni ve favori sayılarını al
+          let userLikedCount = 0;
+          let userFavoriteCount = 0;
+          
+          try {
+            // Kullanıcının beğendiği postları say
+            const likedPosts = await postsService.getLikedPosts();
+            userLikedCount = likedPosts.success ? (likedPosts.data?.length || 0) : 0;
+            
+            // Kullanıcının favorilediği postları say  
+            const favoritePosts = await postsService.getFavoritePosts();
+            userFavoriteCount = favoritePosts.success ? (favoritePosts.data?.length || 0) : 0;
+            
+            console.log('📊 Profile istatistikleri:', {
+              postCount: userPosts.data.length,
+              userLikedCount,
+              userFavoriteCount
+            });
+            
+          } catch (error) {
+            console.error('İstatistik hesaplanırken hata:', error);
+          }
 
           setStats({
             postCount: userPosts.data.length,
-            likeCount: totalLikes,
-            favoriteCount: userPosts.data.filter((post: any) => post.favoritedBy?.includes(user.id)).length,
+            likeCount: userLikedCount,        // Kullanıcının beğendiği post sayısı
+            favoriteCount: userFavoriteCount, // Kullanıcının favorilediği post sayısı
           });
         } catch (error) {
           console.error('Veri yüklenirken hata:', error);
@@ -272,8 +342,10 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.statsContainer}>
-        <StatMinimal stats={stats} colors={colors} />
+        <StatMinimal stats={stats} colors={colors} router={router} />
       </View>
+
+
 
       <View style={styles.contentContainer}>
         <Text style={styles.sectionTitle}>Paylaşımların</Text>
@@ -385,6 +457,7 @@ const getStyles = (colors: any, safeTop: number, safeBottom: number, isSmallDevi
     marginHorizontal: 24, 
     marginBottom: 24,
   },
+
   contentContainer: { 
     flex: 1, 
     paddingHorizontal: 24, 

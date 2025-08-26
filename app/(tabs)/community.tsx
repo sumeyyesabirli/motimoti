@@ -1,7 +1,7 @@
 // app/(tabs)/community.tsx
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import * as postsService from '../../services/posts';
 import { Heart, Plus, Star } from 'phosphor-react-native';
 import React, { useMemo, useEffect } from 'react';
@@ -19,12 +19,13 @@ interface Post {
   id: string; // UUID format: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
   text: string;
   authorName?: string;
-  authorId?: string; // UUID format: 550e8400-e29b-41d4-a716-446655440000
+  authorId?: string | null; // UUID format: 550e8400-e29b-41d4-a716-446655440000 (anonim ise null)
   createdAt: any;
   likedBy?: string[]; // UUID array: ["550e8400-e29b-41d4-a716-446655440000", ...]
   likeCount?: number;
   favoritedBy?: string[]; // UUID array: ["a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", ...]
   favoriteCount?: number;
+  isAnonymous?: boolean; // Anonim paylaşım kontrolü
 }
 
 // Zamanı dinamik olarak formatlayan yardımcı fonksiyon
@@ -47,6 +48,7 @@ const withAlpha = (color: string, alpha: number): string => {
 
 // Paylaşım kartı - Toplulukta yalnızca etkileşim (beğeni/favori)
 const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: Post; colors: any; onLike: any; onFavorite: any; userId: any; isLast: boolean; }) => {
+  const router = useRouter();
   const styles = getStyles(colors);
   const isLiked = item.likedBy?.includes(userId);
   const isFavorited = (item.favoritedBy || [])?.includes(userId);
@@ -83,15 +85,31 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
       {/* Post içeriği */}
       <View style={styles.postContent}>
         <View style={styles.postHeader}>
-          <View style={styles.authorAvatar}>
+          <View style={[styles.authorAvatar, item.isAnonymous && styles.authorAvatarAnonymous]}>
             <Text style={styles.authorInitial}>
-              {(item.authorName || 'A').charAt(0).toUpperCase()}
+              {item.isAnonymous ? '🎭' : (item.authorName || 'A').charAt(0).toUpperCase()}
             </Text>
           </View>
-          <View style={styles.authorInfo}>
+          <TouchableOpacity 
+            style={[styles.authorInfo, item.isAnonymous && styles.authorInfoAnonymous]}
+            onPress={() => {
+              // Anonim paylaşımlar için profil linkini devre dışı bırak
+              if (item.isAnonymous) {
+                console.log('🎭 Anonim paylaşım - profil erişimi engellendi');
+                return;
+              }
+              
+              if (item.authorId) {
+                console.log('👤 Kullanıcı profiline gidiliyor:', item.authorId);
+                router.push(`/user-posts/${item.authorId}`);
+              } else {
+                console.log('⚠️ AuthorId yok - profil erişimi mümkün değil');
+              }
+            }}
+          >
             <Text style={styles.postAuthor}>{item.authorName || 'Anonim'}</Text>
             <Text style={styles.postTimestamp}>{timeAgo(item.createdAt)}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
         <Text style={styles.postText}>{item.text}</Text>
         
@@ -113,7 +131,7 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
               color={isLiked ? colors.header : colors.textMuted} 
               weight={isLiked ? 'fill' : 'regular'} 
             />
-             <Text style={[styles.actionText, isLiked && styles.likedText]}>
+                          <Text style={[styles.actionText, isLiked && styles.likedText]}>
                {actualLikeCount}
              </Text>
            </TouchableOpacity>
@@ -135,7 +153,7 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
               color={isFavorited ? '#FFD700' : colors.textMuted} 
               weight={isFavorited ? 'fill' : 'regular'} 
             />
-             <Text style={[styles.actionText, isFavorited && styles.favoritedText]}>
+                          <Text style={[styles.actionText, isFavorited && styles.favoritedText]}>
                {actualFavoriteCount}
              </Text>
            </TouchableOpacity>
@@ -156,6 +174,7 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
 
 export default function CommunityScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { user, token } = useAuth();
   const { showFeedback } = useFeedback();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -207,7 +226,7 @@ export default function CommunityScreen() {
       
       if (response.success && response.data) {
         // SORUN ÇÖZÜMÜ: Client-side'da likedBy/favoritedBy state'ini koru
-        const enhancedPosts = response.data.map(post => {
+        const enhancedPosts = response.data.map((post: any) => {
           // Mevcut global state'i koru (PostsContext'ten)
           const existingPost = posts.find(p => p.id === post.id);
           
@@ -667,6 +686,9 @@ const getStyles = (colors: any) => {
       justifyContent: 'center', 
       alignItems: 'center' 
     },
+    authorAvatarAnonymous: {
+      backgroundColor: colors.textMuted, // Anonim için gri arka plan
+    },
     authorInitial: { 
       fontFamily: 'Nunito-Bold', 
       fontSize: 12, 
@@ -674,6 +696,9 @@ const getStyles = (colors: any) => {
     },
     authorInfo: { 
       marginLeft: 10 
+    },
+    authorInfoAnonymous: {
+      opacity: 0.7, // Anonim paylaşımlar için daha şeffaf görünüm
     },
     postAuthor: { 
       fontFamily: 'Nunito-Bold', 

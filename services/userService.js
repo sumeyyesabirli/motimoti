@@ -152,21 +152,29 @@ export const userService = {
   // Kullanıcı girişi
   async login(email, password) {
     if (API_DEBUG) {
-      console.log('🔧 Mock API: Login called with:', { email, password });
+      console.log('🔧 Mock API: Login called with:', { email, password: '***' });
       
-      // Mock authentication
-      const user = mockUsers.find(u => u.email === email);
-      if (user && password.length > 0) {
+      // Mock authentication - herhangi bir email/password ile giriş yapabilir
+      if (email && password && password.length > 0) {
+        const mockUser = {
+          id: '20927611-ad04-48ec-8267-491f7eddc8e3',
+          username: 'Sümeyye',
+          email: email,
+          birthDate: '1996-10-29T22:00:00.000Z'
+        };
+        
+        console.log('✅ Mock Login başarılı:', mockUser);
+        
         return {
           success: true,
           data: {
-            user: user,
+            user: mockUser,
             token: 'mock-jwt-token-' + Date.now()
           },
-          message: 'Giriş başarılı'
+          message: 'Mock giriş başarılı'
         };
       } else {
-        throw new Error('Geçersiz email veya şifre');
+        throw new Error('Email ve şifre boş olamaz');
       }
     }
     

@@ -4,7 +4,7 @@ interface Post {
   id: string; // UUID format: 6ba7b810-9dad-11d1-80b4-00c04fd430c8
   text: string;
   authorName?: string;
-  authorId?: string; // UUID format: 550e8400-e29b-41d4-a716-446655440000
+  authorId?: string | null; // UUID format: 550e8400-e29b-41d4-a716-446655440000 (anonim ise null)
   createdAt: any;
   likedBy?: string[]; // UUID array: ["550e8400-e29b-41d4-a716-446655440000", ...]
   likeCount?: number;
