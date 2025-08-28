@@ -28,10 +28,10 @@ export default function ConfirmDeleteModal({
       visible={visible}
       transparent={true}
       animationType="fade"
+      statusBarTranslucent
+      presentationStyle="overFullScreen"
       onRequestClose={onCancel}
-      statusBarTranslucent={true}
     >
-      {/* Modal'ı gerçekten ağaç dışına taşıyoruz - hiçbir parent'ın overflow'u etkileyemez */}
       <View style={styles.modalOverlay}>
         <View style={[styles.confirmCard, { backgroundColor: colors?.card || '#fff' }]}>
           {title && (
@@ -65,17 +65,10 @@ export default function ConfirmDeleteModal({
 
 const styles = StyleSheet.create({
   modalOverlay: {
-    // Modal'ı gerçekten ağaç dışına taşıyoruz
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
-    // Hiçbir parent'ın overflow'u etkileyemez
-    zIndex: 999999,
   },
   confirmCard: {
     width: '90%',
@@ -87,8 +80,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 10,
-    // Modal'ın kendi overflow'u da hidden olmasın
-    overflow: 'visible',
   },
   confirmTitle: {
     fontFamily: 'Nunito-Bold',

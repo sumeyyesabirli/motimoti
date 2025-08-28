@@ -12,7 +12,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { usePosts } from '../../context/PostsContext';
 import { usePagination } from '../../hooks/usePagination';
-
+import { PaginatedFlatList } from '../../components/PaginatedFlatList';
 
 // Post type'ını tanımla
 interface Post {
@@ -47,20 +47,30 @@ const withAlpha = (color: string, alpha: number): string => {
 };
 
 // Paylaşım kartı - Toplulukta yalnızca etkileşim (beğeni/favori)
-const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: Post; colors: any; onLike: any; onFavorite: any; userId: any; isLast: boolean; }) => {
+const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, localLikes, localFavorites }: { 
+  item: Post; 
+  colors: any; 
+  onLike: any; 
+  onFavorite: any; 
+  userId: any; 
+  isLast: boolean;
+  localLikes: Set<string>;
+  localFavorites: Set<string>;
+}) => {
   const router = useRouter();
   const styles = getStyles(colors);
-  const isLiked = item.likedBy?.includes(userId);
-  const isFavorited = (item.favoritedBy || [])?.includes(userId);
   
-  // ACIL DEBUG: Array içeriğini detaylı göster
-  // Count'ları array length'lerinden hesapla (daha güvenilir)
+  // Local state'leri kullan (optimistic updates için)
+  const isLiked = localLikes.has(item.id) || item.likedBy?.includes(userId);
+  const isFavorited = localFavorites.has(item.id) || (item.favoritedBy || [])?.includes(userId);
+  
+  // Count'ları doğrudan array length'lerden al - API'den geliyor zaten
   const actualLikeCount = item.likedBy?.length || 0;
   const actualFavoriteCount = item.favoritedBy?.length || 0;
   
-  console.log(`🎴 ${item.id.substring(0, 8)}... | ❤️${isLiked ? '🔴' : '⚪'} (${actualLikeCount}) | ⭐${isFavorited ? '🟡' : '⚪'} (${actualFavoriteCount})`);
-  console.log(`   └── likedBy: [${item.likedBy?.length || 0}] = ${JSON.stringify(item.likedBy)}`);
-  console.log(`   └── favoritedBy: [${item.favoritedBy?.length || 0}] = ${JSON.stringify(item.favoritedBy)}`);
+  // Local state'lerden optimistic updates için count'ları güncelle
+  const finalLikeCount = actualLikeCount + (localLikes.has(item.id) ? 1 : 0) - (item.likedBy?.includes(userId) && !localLikes.has(item.id) ? 1 : 0);
+  const finalFavoriteCount = actualFavoriteCount + (localFavorites.has(item.id) ? 1 : 0) - (item.favoritedBy?.includes(userId) && !localFavorites.has(item.id) ? 1 : 0);
   
   // Yanıp sönen animasyon için
   const pulseValue = useSharedValue(1);
@@ -114,8 +124,8 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
         <Text style={styles.postText}>{item.text}</Text>
         
         <View style={styles.postFooter}>
-                     <TouchableOpacity 
-             style={[styles.actionButton, isLiked && styles.likedButton]} 
+          <TouchableOpacity 
+            style={[styles.actionButton, isLiked && styles.likedButton]} 
             onPress={() => {
               console.log('❤️ KALP BASILDI:', {
                 postId: item.id.substring(0, 8) + '...',
@@ -124,20 +134,20 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
               });
               onLike(item.id, isLiked);
             }}
-             disabled={false} // Her zaman tıklanabilir
-           >
+            disabled={false}
+          >
             <Heart 
               size={16} 
               color={isLiked ? colors.header : colors.textMuted} 
               weight={isLiked ? 'fill' : 'regular'} 
             />
-                          <Text style={[styles.actionText, isLiked && styles.likedText]}>
-               {actualLikeCount}
-             </Text>
-           </TouchableOpacity>
+            <Text style={[styles.actionText, isLiked && styles.likedText]}>
+              {finalLikeCount}
+            </Text>
+          </TouchableOpacity>
           
-                     <TouchableOpacity 
-             style={[styles.actionButton, isFavorited && styles.favoritedButton]} 
+          <TouchableOpacity 
+            style={[styles.actionButton, isFavorited && styles.favoritedButton]} 
             onPress={() => {
               console.log('⭐ YILDIZ BASILDI:', {
                 postId: item.id.substring(0, 8) + '...',
@@ -146,18 +156,17 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast }: { item: 
               });
               onFavorite(item.id, isFavorited);
             }}
-             disabled={false} // Her zaman tıklanabilir
-           >
+            disabled={false}
+          >
             <Star 
               size={16} 
               color={isFavorited ? '#FFD700' : colors.textMuted} 
               weight={isFavorited ? 'fill' : 'regular'} 
             />
-                          <Text style={[styles.actionText, isFavorited && styles.favoritedText]}>
-               {actualFavoriteCount}
-             </Text>
-           </TouchableOpacity>
-
+            <Text style={[styles.actionText, isFavorited && styles.favoritedText]}>
+              {finalFavoriteCount}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
       
@@ -179,96 +188,22 @@ export default function CommunityScreen() {
   const { showFeedback } = useFeedback();
   const styles = useMemo(() => getStyles(colors), [colors]);
   
-  // Global posts state kullan
+  // Pagination hook kullan
   const {
-    posts, 
-    setPosts, 
-    updatePost,
-    toggleLike, 
-    toggleFavorite, 
-    lastFetchTime, 
-    setLastFetchTime 
-  } = usePosts();
+    data: posts,
+    loading,
+    pagination,
+    loadMore,
+    refresh,
+    canLoadMore,
+    error
+  } = usePagination('posts', undefined, 10);
   
-  // Local loading state'leri
-  const [loading, setLoading] = React.useState(false);
-  const [refreshing, setRefreshing] = React.useState(false);
+  // Global posts context'ten sadece gerekli fonksiyonları al
+  const { updatePost } = usePosts();
   
-  // Post listesini yükle (cache ile)
-  const loadPosts = async (forceRefresh = false) => {
-    try {
-      // Cache kontrolü: 5 dakikadan yeni ise yeniden yükleme
-      const now = Date.now();
-      const cacheExpiry = 5 * 60 * 1000; // 5 dakika
-      const shouldLoadFromCache = !forceRefresh && posts.length > 0 && (now - lastFetchTime) < cacheExpiry;
-      
-      if (shouldLoadFromCache) {
-        console.log('💾 CACHE: Posts cache\'den yükleniyor, fresh data var:', {
-          postsCount: posts.length,
-          cacheAge: Math.round((now - lastFetchTime) / 1000) + 's',
-          'freshData': '✅'
-        });
-        return;
-      }
-      
-      setLoading(posts.length === 0); // İlk yüklemede loading göster
-      console.log('🚀 API: Post listesi yükleniyor...');
-      
-      const response = await postsService.getPosts();
-      
-      console.log(`📋 Posts yüklendi: ${response.data?.length || 0} adet | Cache: ${forceRefresh ? 'FORCE_REFRESH' : 'NORMAL_LOAD'}`);
-      
-      // API response kontrol (development only)
-      if (process.env.NODE_ENV === 'development' && response.data?.[0]) {
-        const firstPost = response.data[0];
-        console.log(`🔍 API Check: likedBy(${firstPost.likedBy?.length || 0}) favoritedBy(${firstPost.favoritedBy?.length || 0})`);
-      }
-      
-      if (response.success && response.data) {
-        // SORUN ÇÖZÜMÜ: Client-side'da likedBy/favoritedBy state'ini koru
-        const enhancedPosts = response.data.map((post: any) => {
-          // Mevcut global state'i koru (PostsContext'ten)
-          const existingPost = posts.find(p => p.id === post.id);
-          
-          // API'den array gelmiyorsa, mevcut state'i koru
-          const finalLikedBy = (post.likedBy && post.likedBy.length > 0) 
-            ? post.likedBy 
-            : existingPost?.likedBy || [];
-          
-          const finalFavoritedBy = (post.favoritedBy && post.favoritedBy.length > 0) 
-            ? post.favoritedBy 
-            : existingPost?.favoritedBy || [];
-          
-          return {
-            ...post,
-            likedBy: finalLikedBy, 
-            favoritedBy: finalFavoritedBy
-          };
-        });
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🔧 State korundu: ${enhancedPosts.length} post | Local cache: ${posts.length > 0 ? 'VAR' : 'YOK'}`);
-        }
-        
-        setPosts(enhancedPosts);
-        setLastFetchTime(now);
-        console.log(`✅ Posts güncellendi: ${enhancedPosts.length} adet`);
-      } else {
-        console.log('⚠️ Posts yüklenemedi:', response.message);
-      }
-    } catch (error) {
-      console.error('❌ Posts yükleme hatası:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Refresh fonksiyonu
-  const refreshPosts = async () => {
-    setRefreshing(true);
-    await loadPosts(true); // Force refresh
-  };
+  // Pagination hook otomatik olarak ilk sayfayı yükler
+  // loadPosts ve refreshPosts fonksiyonları artık gerekli değil
 
   // Header animasyonu için
   const headerHeight = useSharedValue(120);
@@ -282,9 +217,7 @@ export default function CommunityScreen() {
     };
   });
 
-
-
-  // İlk yükleme
+  // İlk yükleme - pagination hook otomatik olarak yükler
   useFocusEffect(
     React.useCallback(() => {
       console.log('🔍 CommunityScreen useFocusEffect triggered');
@@ -293,31 +226,64 @@ export default function CommunityScreen() {
         console.log('❌ No user, returning');
         return;
       }
-      console.log('🚀 Calling loadPosts...');
-      loadPosts();
+      console.log('✅ Pagination hook otomatik olarak posts yükleyecek');
     }, [user])
   );
 
+  // Debug: Posts verisini kontrol et - kaldırıldı
+
+  // Local like/favorite state'lerini posts verisi ile senkronize et
+  useEffect(() => {
+    if (posts && posts.length > 0 && user) {
+      // Local state'ler senkronize ediliyor
+      
+      const newLocalLikes = new Set<string>();
+      const newLocalFavorites = new Set<string>();
+      
+      posts.forEach(post => {
+        if (post.likedBy?.includes(user.id)) {
+          newLocalLikes.add(post.id);
+        }
+        if (post.favoritedBy?.includes(user.id)) {
+          newLocalFavorites.add(post.id);
+        }
+      });
+      
+      setLocalLikes(newLocalLikes);
+      setLocalFavorites(newLocalFavorites);
+      
+      // Local state'ler güncellendi
+    }
+  }, [posts, user]);
+
   const [processingLikes, setProcessingLikes] = React.useState<Set<string>>(new Set());
   const [processingFavorites, setProcessingFavorites] = React.useState<Set<string>>(new Set());
+  
+  // Local like/favorite state'leri
+  const [localLikes, setLocalLikes] = React.useState<Set<string>>(new Set());
+  const [localFavorites, setLocalFavorites] = React.useState<Set<string>>(new Set());
 
   const handleLike = async (postId: string, isLiked: boolean) => {
     if (!user) return;
     
     // Çifte tıklama önleme
     if (processingLikes.has(postId)) {
-      console.log('⚠️ LIKE: İşlem devam ediyor, atlanıyor');
-          return;
-        }
+      return;
+    }
         
     setProcessingLikes(prev => new Set(prev).add(postId));
     
-    console.log(`❤️ ${isLiked ? 'Unlike' : 'Like'}: ${postId.substring(0, 8)}...`);
-    
     try {
       // Önce UI'ı hemen güncelle (optimistic update)
-      toggleLike(postId, user.id);
-      // Optimistic update - hemen UI güncelle
+      if (isLiked) {
+        setLocalLikes(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+      } else {
+        setLocalLikes(prev => new Set(prev).add(postId));
+      }
       
       // Sonra API'yi çağır
       let apiResponse;
@@ -330,32 +296,15 @@ export default function CommunityScreen() {
       }
       
       // API başarılı mı kontrol et
-      
       if (apiResponse?.success) {
         console.log(`✅ Like API başarılı`);
         
-        // API'den gelen güncel data ile state'i senkronize et
+        // API'den gelen güncel data ile pagination state'ini güncelle
         if (apiResponse?.data) {
-          console.log('🔄 LIKE SYNC BEFORE:', {
-            apiLikedBy: apiResponse.data.likedBy?.length || 0,
-            apiFavoritedBy: apiResponse.data.favoritedBy?.length || 0,
-            apiLikeCount: apiResponse.data.likeCount,
-            apiFavoriteCount: apiResponse.data.favoriteCount
-          });
+          console.log('🔄 LIKE SYNC: API response alındı');
           
-          console.log('🔍 API ARRAYS DETAIL:', {
-            likedByArray: JSON.stringify(apiResponse.data.likedBy),
-            favoritedByArray: JSON.stringify(apiResponse.data.favoritedBy)
-          });
-          
-          // API'den array format ile direkt sync
-          updatePost(postId, {
-            likeCount: apiResponse.data.likeCount,
-            favoriteCount: apiResponse.data.favoriteCount,
-            likedBy: apiResponse.data.likedBy || [],
-            favoritedBy: apiResponse.data.favoritedBy || []
-          });
-          console.log('✅ LIKE SYNC: API arrayleri ile sync edildi');
+          // Pagination state'ini güncelle
+          // Bu kısım pagination hook'unda otomatik olarak yapılacak
         }
       } else {
         throw new Error(apiResponse?.message || 'API işlemi başarısız');
@@ -370,9 +319,16 @@ export default function CommunityScreen() {
         'rollbackYapılıyor': '🔄'
       });
       
-      // Hata durumunda state'i geri al
-      toggleLike(postId, user.id);
-      console.log('🔄 ROLLBACK: UI state geri alındı');
+      // Hata durumunda local state'i geri al
+      if (isLiked) {
+        setLocalLikes(prev => new Set(prev).add(postId));
+      } else {
+        setLocalLikes(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+      }
       
       showFeedback({ 
         message: `Beğeni işlemi başarısız: ${error.response?.status || 'Network'} Error`, 
@@ -403,8 +359,15 @@ export default function CommunityScreen() {
     
     try {
       // Önce UI'ı hemen güncelle (optimistic update)
-      toggleFavorite(postId, user.id);
-      // Optimistic update - hemen UI güncelle
+      if (isFavorited) {
+        setLocalFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+      } else {
+        setLocalFavorites(prev => new Set(prev).add(postId));
+      }
       
       // Sonra API'yi çağır
       let apiResponse;
@@ -424,30 +387,14 @@ export default function CommunityScreen() {
       });
       
       if (apiResponse?.success) {
-        console.log('✅ GLOBAL: API başarılı, favori kalıcı olarak kaydedildi');
+        console.log('✅ FAVORITE: API başarılı, favori kalıcı olarak kaydedildi');
         
-        // API'den gelen güncel data ile state'i senkronize et
+        // API'den gelen güncel data ile pagination state'ini güncelle
         if (apiResponse?.data) {
-          console.log('🔄 FAVORITE SYNC BEFORE:', {
-            apiLikedBy: apiResponse.data.likedBy?.length || 0,
-            apiFavoritedBy: apiResponse.data.favoritedBy?.length || 0,
-            apiLikeCount: apiResponse.data.likeCount,
-            apiFavoriteCount: apiResponse.data.favoriteCount
-          });
+          console.log('🔄 FAVORITE SYNC: API response alındı');
           
-          console.log('🔍 FAVORITE API ARRAYS DETAIL:', {
-            likedByArray: JSON.stringify(apiResponse.data.likedBy),
-            favoritedByArray: JSON.stringify(apiResponse.data.favoritedBy)
-          });
-          
-          // API'den array format ile direkt sync
-          updatePost(postId, {
-            likeCount: apiResponse.data.likeCount,
-            favoriteCount: apiResponse.data.favoriteCount,
-            likedBy: apiResponse.data.likedBy || [],
-            favoritedBy: apiResponse.data.favoritedBy || []
-          });
-          console.log('✅ FAVORITE SYNC: API arrayleri ile sync edildi');
+          // Pagination state'ini güncelle
+          // Bu kısım pagination hook'unda otomatik olarak yapılacak
         }
       } else {
         throw new Error(apiResponse?.message || 'API işlemi başarısız');
@@ -462,9 +409,16 @@ export default function CommunityScreen() {
         'rollbackYapılıyor': '🔄'
       });
       
-      // Hata durumunda state'i geri al
-      toggleFavorite(postId, user.id);
-      console.log('🔄 ROLLBACK: UI state geri alındı');
+      // Hata durumunda local state'i geri al
+      if (isFavorited) {
+        setLocalFavorites(prev => new Set(prev).add(postId));
+      } else {
+        setLocalFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+      }
       
       showFeedback({ 
         message: `Favori işlemi başarısız: ${error.response?.status || 'Network'} Error`, 
@@ -479,8 +433,6 @@ export default function CommunityScreen() {
       });
     }
   };
-
-  // Toplulukta düzenleme/silme yok
 
   const handleScroll = (event: any) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -525,16 +477,20 @@ export default function CommunityScreen() {
     );
   }
 
-  const renderPost = ({ item, index }: { item: Post; index: number }) => (
-    <PostCard 
-      item={item} 
-      colors={colors} 
-      onLike={handleLike} 
-      onFavorite={handleFavorite}
-                  userId={user.id} 
-      isLast={index === posts.length - 1}
-    />
-  );
+  const renderPost = ({ item, index }: { item: Post; index: number }) => {
+    return (
+      <PostCard 
+        item={item} 
+        colors={colors} 
+        onLike={handleLike} 
+        onFavorite={handleFavorite}
+        userId={user.id} 
+        isLast={index === posts.length - 1}
+        localLikes={localLikes}
+        localFavorites={localFavorites}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -546,16 +502,19 @@ export default function CommunityScreen() {
       {loading && posts.length === 0 ? (
         <ActivityIndicator size="large" color={colors.primaryButton} style={{ flex: 1 }} />
       ) : (
-        <FlatList
+        <PaginatedFlatList
           data={posts}
           renderItem={renderPost}
           keyExtractor={(item) => item.id}
+          loading={loading}
+          pagination={pagination}
+          onLoadMore={loadMore}
+          onRefresh={refresh}
+          canLoadMore={canLoadMore}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          onRefresh={refreshPosts}
-          refreshing={refreshing}
           ListEmptyComponent={
             <View style={styles.centerContainer}>
               <Text style={styles.noPostsText}>Henüz paylaşım yok</Text>
@@ -567,7 +526,6 @@ export default function CommunityScreen() {
               {/* Toplam gönderi sayısı kaldırıldı */}
             </View>
           }
-          onEndReachedThreshold={0.1}
         />
       )}
 
@@ -596,7 +554,6 @@ const getStyles = (colors: any) => {
     safeArea: { 
       flex: 1, 
       backgroundColor: colors.background,
-      zIndex: 1,
     },
     header: { 
       paddingTop: 45, 
@@ -608,7 +565,6 @@ const getStyles = (colors: any) => {
       top: 0,
       left: 0,
       right: 0,
-      zIndex: 10,
       backgroundColor: colors.background,
       borderBottomWidth: 1,
       borderBottomColor: colors.mode === 'dark' ? colors.header + '20' : '#E0E0E0',
@@ -722,12 +678,14 @@ const getStyles = (colors: any) => {
       flexDirection: 'row', 
       borderTopWidth: 0, 
       borderTopColor: 'transparent', 
-      paddingTop: 10 
+      paddingTop: 10,
+      alignItems: 'center',
+      justifyContent: 'space-between' // Like/Favorite sol, Düzenle/Sil sağ
     },
     actionButton: { 
       flexDirection: 'row', 
       alignItems: 'center', 
-      marginRight: 16,
+      marginRight: 8,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 6,
@@ -753,6 +711,26 @@ const getStyles = (colors: any) => {
     favoritedText: { 
       color: '#FFD700',
       fontFamily: 'Nunito-Bold',
+    },
+    deleteButton: { 
+      backgroundColor: colors.mode === 'dark' ? '#FF4444' + '25' : '#FF4444' + '15',
+      borderWidth: 0,
+    },
+    editButton: { 
+      backgroundColor: colors.mode === 'dark' ? colors.header + '25' : colors.header + '15',
+      borderWidth: 0,
+    },
+    actionButtonsContainer: {
+      flexDirection: 'row',
+      marginLeft: 'auto', // Sağa yasla
+      gap: 8, // Butonlar arası boşluk
+    },
+    actionButtonInContainer: {
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
     },
     fab: { 
       position: 'absolute', 

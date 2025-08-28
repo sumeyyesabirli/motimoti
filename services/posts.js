@@ -28,33 +28,36 @@ export async function createPost(data) {
   return res.data;
 }
 
-export async function getPosts() {
+export async function getPosts(params = { page: 1, limit: 10 }) {
   const startTime = Date.now();
   
   Logger.api('Tüm Postları Getir', {
     method: 'GET',
-    url: '/posts'
+    url: '/posts',
+    params
   });
   
-  const res = await api.get('/posts');
+  const res = await api.get('/posts', { params });
   const duration = Date.now() - startTime;
   
   Logger.success('Postlar Başarıyla Yüklendi', {
     duration,
-    count: res.data.data?.length || 0
+    count: res.data.data?.length || 0,
+    pagination: res.data.pagination
   });
   
   return res.data;
 }
 
-export async function getUserPosts(userId) {
-  console.log('🚀 Get User Posts isteği:', { userId });
+export async function getUserPosts(userId, params = { page: 1, limit: 10 }) {
+  console.log('🚀 Get User Posts isteği:', { userId, params });
   
-  const res = await api.get(`/posts/user/${userId}`);
+  const res = await api.get(`/posts/user/${userId}`, { params });
   
   console.log('✅ Get User Posts başarılı:', {
     userId,
-    postCount: res.data.data?.length || 0
+    postCount: res.data.data?.length || 0,
+    pagination: res.data.pagination
   });
   
   return res.data;
@@ -165,54 +168,94 @@ export async function unfavoritePost(postId) {
 // ============================================
 
 // Kendi beğendiklerim (authentication gerekli)
-export async function getLikedPosts() {
+export async function getLikedPosts(params = { page: 1, limit: 10 }) {
   const startTime = Date.now();
   
   Logger.api('Beğenilen Postları Getir', {
     method: 'GET',
-    url: API_ENDPOINTS.GET_LIKED_POSTS
+    url: API_ENDPOINTS.GET_LIKED_POSTS,
+    params
   });
   
-  const res = await api.get(API_ENDPOINTS.GET_LIKED_POSTS);
+  const res = await api.get(API_ENDPOINTS.GET_LIKED_POSTS, { params });
   const duration = Date.now() - startTime;
+  
+  // Debug: API response'u detaylı kontrol et
+  if (res.data.data && res.data.data.length > 0) {
+    const firstPost = res.data.data[0];
+    console.log('🔍 LIKED POSTS API DEBUG:', {
+      firstPostId: firstPost.id?.substring(0, 8) + '...',
+      likeCount: firstPost.likeCount,
+      favoriteCount: firstPost.favoriteCount,
+      likedBy: firstPost.likedBy,
+      favoritedBy: firstPost.favoritedBy,
+      likedByType: typeof firstPost.likedBy,
+      favoritedByType: typeof firstPost.favoritedBy,
+      likedByLength: firstPost.likedBy?.length,
+      favoritedByLength: firstPost.favoritedBy?.length
+    });
+  }
   
   Logger.success('Beğenilen Postlar Yüklendi', {
     duration,
-    count: res.data.data?.length || 0
+    count: res.data.data?.length || 0,
+    pagination: res.data.pagination
   });
   
   return res.data;
 }
 
 // Kendi favorilerim (authentication gerekli)  
-export async function getFavoritePosts() {
-  console.log('🚀 Favorilerim API isteği');
+export async function getFavoritePosts(params = { page: 1, limit: 10 }) {
+  console.log('🚀 Favorilerim API isteği:', params);
   
-  const res = await api.get(API_ENDPOINTS.GET_FAVORITE_POSTS);
+  const res = await api.get(API_ENDPOINTS.GET_FAVORITE_POSTS, { params });
   
-  console.log(`✅ Favorilerim yüklendi: ${res.data.data?.length || 0} post`);
+  // Debug: API response'u detaylı kontrol et
+  if (res.data.data && res.data.data.length > 0) {
+    const firstPost = res.data.data[0];
+    console.log('🔍 FAVORITE POSTS API DEBUG:', {
+      firstPostId: firstPost.id?.substring(0, 8) + '...',
+      likeCount: firstPost.likeCount,
+      favoriteCount: firstPost.favoriteCount,
+      likedBy: firstPost.likedBy,
+      favoritedBy: firstPost.favoritedBy,
+      likedByType: typeof firstPost.likedBy,
+      favoritedByType: typeof firstPost.favoritedBy,
+      likedByLength: firstPost.likedBy?.length,
+      favoritedByLength: firstPost.favoritedBy?.length
+    });
+  }
+  
+  console.log(`✅ Favorilerim yüklendi: ${res.data.data?.length || 0} post`, {
+    pagination: res.data.pagination
+  });
   
   return res.data;
 }
 
 // Belirli kullanıcının beğendikleri (public)
-export async function getUserLikedPosts(userId) {
-  console.log('🚀 Kullanıcı beğendikleri API isteği:', userId);
+export async function getUserLikedPosts(userId, params = { page: 1, limit: 10 }) {
+  console.log('🚀 Kullanıcı beğendikleri API isteği:', { userId, params });
   
-  const res = await api.get(API_ENDPOINTS.GET_USER_LIKED_POSTS(userId));
+  const res = await api.get(API_ENDPOINTS.GET_USER_LIKED_POSTS(userId), { params });
   
-  console.log(`✅ Kullanıcı beğendikleri yüklendi: ${res.data.data?.length || 0} post`);
+  console.log(`✅ Kullanıcı beğendikleri yüklendi: ${res.data.data?.length || 0} post`, {
+    pagination: res.data.pagination
+  });
   
   return res.data;
 }
 
 // Belirli kullanıcının favorileri (public)
-export async function getUserFavoritePosts(userId) {
-  console.log('🚀 Kullanıcı favorileri API isteği:', userId);
+export async function getUserFavoritePosts(userId, params = { page: 1, limit: 10 }) {
+  console.log('🚀 Kullanıcı favorileri API isteği:', { userId, params });
   
-  const res = await api.get(API_ENDPOINTS.GET_USER_FAVORITE_POSTS(userId));
+  const res = await api.get(API_ENDPOINTS.GET_USER_FAVORITE_POSTS(userId), { params });
   
-  console.log(`✅ Kullanıcı favorileri yüklendi: ${res.data.data?.length || 0} post`);
+  console.log(`✅ Kullanıcı favorileri yüklendi: ${res.data.data?.length || 0} post`, {
+    pagination: res.data.pagination
+  });
   
   return res.data;
 }

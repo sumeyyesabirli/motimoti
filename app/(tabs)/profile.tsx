@@ -11,9 +11,8 @@ import { getUserProfile } from '../../services/users';
 import { SignOut, PencilSimple, User as UserIcon, UserCircle, Trash } from 'phosphor-react-native';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useResponsive, useSafeArea, getPlatformShadow } from '../../hooks/useResponsive';
-import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
-// Profildeki küçük yazı kartları
+// Profildeki küçük yazı kartları - Sadece butonlar için güzel tasarım
 const ProfilePostCard = ({ item, colors, onEdit, onDelete }: { item: any; colors: any; onEdit: (id: string, currentText: string) => void; onDelete: (id: string) => void; }) => {
   const isAnonymous = typeof item?.authorName === 'string' && item.authorName.startsWith('Anonim');
   
@@ -48,13 +47,34 @@ const ProfilePostCard = ({ item, colors, onEdit, onDelete }: { item: any; colors
         lineHeight: 24,
       }} numberOfLines={4}>{item.text}</Text>
 
-      {/* Düzenle / Sil eylemleri */}
+      {/* Düzenle / Sil eylemleri - Güzel tasarımla */}
       <View style={{ flexDirection: 'row', marginTop: 12 }}>
-        <TouchableOpacity onPress={() => onEdit(item.id, item.text)} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+        <TouchableOpacity 
+          onPress={() => onEdit(item.id, item.text)} 
+          style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            marginRight: 16,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 6,
+            backgroundColor: colors.mode === 'dark' ? colors.header + '25' : colors.header + '15',
+          }}
+        >
           <PencilSimple size={16} color={colors.textMuted} />
           <Text style={{ fontFamily: 'Nunito-SemiBold', fontSize: 12, marginLeft: 6, color: colors.textMuted }}>Düzenle</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onDelete(item.id)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TouchableOpacity 
+          onPress={() => onDelete(item.id)} 
+          style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center',
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 6,
+            backgroundColor: colors.mode === 'dark' ? '#FF4444' + '25' : '#FF4444' + '15',
+          }}
+        >
           <Trash size={16} color={colors.textMuted} />
           <Text style={{ fontFamily: 'Nunito-SemiBold', fontSize: 12, marginLeft: 6, color: colors.textMuted }}>Sil</Text>
         </TouchableOpacity>
@@ -156,7 +176,6 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState<string>('');
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [postToDelete, setPostToDelete] = useState<any>(null);
 
   // Header animasyonu için
@@ -274,7 +293,6 @@ export default function ProfileScreen() {
     try {
       await postsService.deletePost(postToDelete.id);
       showFeedback({ message: 'Paylaşım başarıyla silindi!', type: 'success' });
-      setDeleteModalVisible(false);
       setPostToDelete(null);
       
       // Posts listesini güncelle
@@ -342,113 +360,123 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView 
-        style={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
-          <View style={styles.header}>
-            <View style={styles.avatar}>
-              <UserIcon size={isSmallDevice ? 32 : 40} color={colors.header} weight="fill" />
+    <>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView 
+          style={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingBottom: 100 }}
+        >
+          <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+            <View style={styles.header}>
+              <View style={styles.avatar}>
+                <UserIcon size={isSmallDevice ? 32 : 40} color={colors.header} weight="fill" />
+              </View>
+              <View style={styles.userInfo}>
+                <Text style={styles.name}>{userData?.username || user?.username || 'Kullanıcı'}</Text>
+                <Text style={styles.email}>{user?.email}</Text>
+              </View>
+              <Link href="/profile/edit" asChild>
+                <TouchableOpacity style={styles.editButton}>
+                  <PencilSimple size={isSmallDevice ? 18 : 20} color={colors.textDark} />
+                </TouchableOpacity>
+              </Link>
             </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.name}>{userData?.username || user?.username || 'Kullanıcı'}</Text>
-              <Text style={styles.email}>{user?.email}</Text>
+
+            <View style={styles.statsContainer}>
+              <StatMinimal stats={stats} colors={colors} router={router} />
             </View>
-            <Link href="/profile/edit" asChild>
-              <TouchableOpacity style={styles.editButton}>
-                <PencilSimple size={isSmallDevice ? 18 : 20} color={colors.textDark} />
-              </TouchableOpacity>
-            </Link>
-          </View>
+          </Animated.View>
 
-          <View style={styles.statsContainer}>
-            <StatMinimal stats={stats} colors={colors} router={router} />
+          <View style={styles.contentContainer}>
+            <Text style={styles.sectionTitle}>Paylaşımların</Text>
+            {loading ? (
+              <ActivityIndicator size="large" color={colors.primaryButton} style={{ marginTop: 40 }} />
+            ) : posts.length === 0 ? (
+              <Text style={styles.emptyText}>Henüz bir paylaşımın yok.</Text>
+            ) : (
+              posts.map((item) => (
+                <ProfilePostCard 
+                  key={item.id}
+                  item={item} 
+                  colors={colors} 
+                  onEdit={(id, currentText) => {
+                    setEditingId(id);
+                    setEditingText(currentText);
+                  }}
+                  onDelete={async (id) => {
+                    setPostToDelete(item);
+                    const confirmed = await showConfirm({
+                      title: 'Paylaşımı Sil',
+                      message: 'Silmek istediğinize emin misiniz?',
+                      confirmText: 'SİL',
+                      cancelText: 'İPTAL',
+                    });
+                    if (!confirmed) {
+                      setPostToDelete(null);
+                      return;
+                    }
+                    await handleDelete();
+                  }}
+                />
+              ))
+            )}
           </View>
-        </Animated.View>
+        </ScrollView>
+      
+        <TouchableOpacity style={styles.signOutButton} onPress={signOutUser}>
+          <SignOut size={isSmallDevice ? 18 : 20} color="#D9534F" />
+          <Text style={styles.signOutText}>Çıkış Yap</Text>
+        </TouchableOpacity>
 
-        <View style={styles.contentContainer}>
-          <Text style={styles.sectionTitle}>Paylaşımların</Text>
-          {loading ? (
-            <ActivityIndicator size="large" color={colors.primaryButton} style={{ marginTop: 40 }} />
-          ) : posts.length === 0 ? (
-            <Text style={styles.emptyText}>Henüz bir paylaşımın yok.</Text>
-          ) : (
-            posts.map((item) => (
-              <ProfilePostCard 
-                key={item.id}
-                item={item} 
-                colors={colors} 
-                onEdit={(id, currentText) => {
-                  setEditingId(id);
-                  setEditingText(currentText);
-                }}
-                onDelete={(id) => {
-                  setPostToDelete(item);
-                  setDeleteModalVisible(true);
-                }}
+        {/* Düzenleme Modalı - Basit */}
+        <Modal
+          visible={!!editingId}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setEditingId(null)}
+        >
+          <View style={{ 
+            flex: 1, 
+            backgroundColor: 'rgba(0,0,0,0.5)', 
+            justifyContent: 'center', 
+            alignItems: 'center'
+          }}>
+            <View style={{ 
+              width: '90%', 
+              backgroundColor: colors.card, 
+              borderRadius: 16, 
+              padding: 20
+            }}>
+              <Text style={{ fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textDark, marginBottom: 12 }}>Paylaşımı Düzenle</Text>
+              <TextInput
+                value={editingText}
+                onChangeText={setEditingText}
+                placeholder="Metni güncelle..."
+                multiline
+                textAlignVertical="top"
+                style={{ minHeight: 120, borderWidth: 1, borderColor: colors.textMuted + '40', borderRadius: 12, padding: 12, color: colors.textDark, fontFamily: 'Nunito-Regular' }}
               />
-            ))
-          )}
-        </View>
-      </ScrollView>
-    
-      <TouchableOpacity style={styles.signOutButton} onPress={signOutUser}>
-        <SignOut size={isSmallDevice ? 18 : 20} color="#D9534F" />
-        <Text style={styles.signOutText}>Çıkış Yap</Text>
-      </TouchableOpacity>
-
-      {/* Düzenleme Modalı */}
-      <Modal
-        visible={!!editingId}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditingId(null)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: '90%', maxWidth: 420, backgroundColor: colors.card, borderRadius: 16, padding: 20 }}>
-            <Text style={{ fontFamily: 'Nunito-Bold', fontSize: 18, color: colors.textDark, marginBottom: 12 }}>Paylaşımı Düzenle</Text>
-            <TextInput
-              value={editingText}
-              onChangeText={setEditingText}
-              placeholder="Metni güncelle..."
-              multiline
-              textAlignVertical="top"
-              style={{ minHeight: 120, borderWidth: 1, borderColor: colors.textMuted + '40', borderRadius: 12, padding: 12, color: colors.textDark, fontFamily: 'Nunito-Regular' }}
-            />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
-              <TouchableOpacity onPress={() => setEditingId(null)} style={{ paddingVertical: 10, paddingHorizontal: 16, marginRight: 10 }}>
-                <Text style={{ fontFamily: 'Nunito-SemiBold', color: colors.textMuted }}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleSaveEdit}
-                style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: colors.header, borderRadius: 10 }}
-              >
-                <Text style={{ fontFamily: 'Nunito-Bold', color: colors.textLight }}>Kaydet</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 }}>
+                <TouchableOpacity onPress={() => setEditingId(null)} style={{ paddingVertical: 10, paddingHorizontal: 16, marginRight: 10 }}>
+                  <Text style={{ fontFamily: 'Nunito-SemiBold', color: colors.textMuted }}>İptal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleSaveEdit}
+                  style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: colors.header, borderRadius: 10 }}
+                >
+                  <Text style={{ fontFamily: 'Nunito-Bold', color: colors.textLight }}>Kaydet</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* Silme Onay Modalı */}
-      <ConfirmDeleteModal
-        visible={deleteModalVisible}
-        title="Paylaşımı Sil"
-        message="Silmek istediğinize emin misiniz?"
-        confirmText="SİL"
-        cancelText="İPTAL"
-        onConfirm={handleDelete}
-        onCancel={() => {
-          setDeleteModalVisible(false);
-          setPostToDelete(null);
-        }}
-      />
-    </SafeAreaView>
+        {/* Düzenleme direkt modal ile, silme showConfirm ile */}
+      </SafeAreaView>
+    </>
   );
 }
 

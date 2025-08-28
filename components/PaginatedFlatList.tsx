@@ -1,77 +1,124 @@
 // components/PaginatedFlatList.tsx
 import React from 'react';
-import { FlatList, ActivityIndicator } from 'react-native';
+import {
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+} from 'react-native';
+import { useTheme } from '../context/ThemeContext';
+
+interface PaginationData {
+  currentPage: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+  offset: number;
+}
 
 interface PaginatedFlatListProps<T> {
   data: T[];
-  renderItem: ({ item, index }: { item: T; index: number }) => React.ReactElement;
+  renderItem: ({ item }: { item: T }) => React.ReactElement;
   keyExtractor: (item: T) => string;
-  loading?: boolean;
-  onRefresh?: () => void;
-  refreshing?: boolean;
-  contentContainerStyle?: any;
-  showsVerticalScrollIndicator?: boolean;
-  onScroll?: (event: any) => void;
+  loading: boolean;
+  pagination: PaginationData | null;
+  onLoadMore: () => void;
+  onRefresh: () => void;
+  canLoadMore: boolean;
   ListEmptyComponent?: React.ReactElement;
   ListHeaderComponent?: React.ReactElement;
-  ListFooterComponent?: React.ReactElement;
-  numColumns?: number;
-  horizontal?: boolean;
-  pagingEnabled?: boolean;
-  showsHorizontalScrollIndicator?: boolean;
-  decelerationRate?: 'normal' | 'fast' | number;
+  contentContainerStyle?: any;
+  style?: any;
+  showsVerticalScrollIndicator?: boolean;
+  onEndReachedThreshold?: number;
+  onScroll?: (event: any) => void;
   scrollEventThrottle?: number;
 }
 
-export function PaginatedFlatList<T>({
+export function PaginatedFlatList<T = any>({
   data,
   renderItem,
   keyExtractor,
   loading,
+  pagination,
+  onLoadMore,
   onRefresh,
-  refreshing,
-  contentContainerStyle,
-  showsVerticalScrollIndicator = false,
-  onScroll,
+  canLoadMore,
   ListEmptyComponent,
   ListHeaderComponent,
-  ListFooterComponent,
-  numColumns,
-  horizontal = false,
-  pagingEnabled = false,
-  showsHorizontalScrollIndicator = false,
-  decelerationRate = 'normal',
-  scrollEventThrottle = 16
+  contentContainerStyle,
+  style,
+  showsVerticalScrollIndicator = false,
+  onEndReachedThreshold = 0.1,
+  onScroll,
+  scrollEventThrottle = 16,
 }: PaginatedFlatListProps<T>) {
-  
-  // Loading spinner component'i
-  const LoadingSpinner = () => (
-    <ActivityIndicator 
-      size="small" 
-      color="#81B29A" 
-      style={{ marginVertical: 20 }} 
-    />
-  );
+  const { colors } = useTheme();
+
+  const renderFooter = () => {
+    if (!canLoadMore) return null;
+    
+    return (
+      <View style={styles.footer}>
+        <ActivityIndicator size="small" color={colors.primaryButton} />
+        <Text style={[styles.footerText, { color: colors.textMuted }]}>
+          Daha fazla yükleniyor...
+        </Text>
+      </View>
+    );
+  };
+
+  const renderEmpty = () => {
+    if (loading) return null;
+    return ListEmptyComponent;
+  };
 
   return (
     <FlatList
       data={data}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
+      style={style}
       contentContainerStyle={contentContainerStyle}
       showsVerticalScrollIndicator={showsVerticalScrollIndicator}
-      onScroll={onScroll}
-      onRefresh={onRefresh}
-      refreshing={refreshing || false}
-      ListEmptyComponent={ListEmptyComponent}
+      onEndReached={onLoadMore}
+      onEndReachedThreshold={onEndReachedThreshold}
       ListHeaderComponent={ListHeaderComponent}
-      ListFooterComponent={loading ? <LoadingSpinner /> : ListFooterComponent}
-      numColumns={numColumns}
-      horizontal={horizontal}
-      pagingEnabled={pagingEnabled}
-      showsHorizontalScrollIndicator={showsHorizontalScrollIndicator}
-      decelerationRate={decelerationRate}
+      ListEmptyComponent={renderEmpty}
+      ListFooterComponent={renderFooter}
+      refreshControl={
+        <RefreshControl
+          refreshing={loading && pagination?.currentPage === 1}
+          onRefresh={onRefresh}
+          colors={[colors.primaryButton]}
+          tintColor={colors.primaryButton}
+        />
+      }
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={10}
+      windowSize={10}
+      initialNumToRender={10}
+      onScroll={onScroll}
       scrollEventThrottle={scrollEventThrottle}
     />
   );
 }
+
+const styles = StyleSheet.create({
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+  },
+  footerText: {
+    fontFamily: 'Nunito-Regular',
+    fontSize: 14,
+    marginLeft: 8,
+  },
+});

@@ -7,7 +7,12 @@
  * Development'ta local IP veya localhost kullanın
  */
 const getApiBaseUrl = () => {
-  // Environment variable varsa onu kullan (production için)
+  // Expo ortam değişkeni (runtime'da erişilebilir)
+  if (process.env.EXPO_PUBLIC_API_BASE_URL) {
+    return process.env.EXPO_PUBLIC_API_BASE_URL;
+  }
+
+  // Node ortam değişkeni (fallback)
   if (process.env.API_BASE_URL) {
     return process.env.API_BASE_URL;
   }
@@ -15,7 +20,8 @@ const getApiBaseUrl = () => {
   // Development için farklı seçenekler
   if (__DEV__) {
     // Emülatör için local network IP (en yaygın kullanım)
-    return 'http://192.168.111.3:3000/api';
+    // Yerel ağ IP'niz değiştiyse .env'de EXPO_PUBLIC_API_BASE_URL ile geçersiz kılın
+    return 'http://192.168.1.2:3000/api';
     
     // Alternatif seçenekler:
     // return 'http://localhost:3000/api';        // Sadece aynı makine için
