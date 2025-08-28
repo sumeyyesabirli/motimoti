@@ -37,20 +37,24 @@ const ProfilePostCard = ({
   const isAnonymous = typeof item?.authorName === 'string' && item.authorName.startsWith('Anonim');
   
   return (
-    <View style={{
-      backgroundColor: colors.card,
-      borderRadius: 16,
-      padding: 18,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: isEditing ? colors.primaryButton + '80' : colors.textMuted + '22',
-      // Düzenleme modunda çerçeveyi daha belirgin ama şık yapalım
-      shadowColor: isEditing ? colors.primaryButton : '#000',
-      shadowOffset: { width: 0, height: isEditing ? 2 : 0 },
-      shadowOpacity: isEditing ? 0.2 : 0,
-      shadowRadius: isEditing ? 4 : 0,
-      elevation: isEditing ? 4 : 0,
-    }}>
+         <View style={{
+       backgroundColor: colors.card,
+       borderRadius: 16,
+       padding: 18,
+       marginBottom: 12,
+       borderWidth: 1,
+       borderColor: isEditing 
+         ? colors.primaryButton + '80' 
+         : isAnonymous 
+           ? colors.primaryButton + '40' 
+           : colors.textMuted + '22',
+       // Düzenleme modunda çerçeveyi daha belirgin ama şık yapalım
+       shadowColor: isEditing ? colors.primaryButton : isAnonymous ? colors.primaryButton : '#000',
+       shadowOffset: { width: 0, height: isEditing ? 2 : 0 },
+       shadowOpacity: isEditing ? 0.2 : isAnonymous ? 0.1 : 0,
+       shadowRadius: isEditing ? 4 : 0,
+       elevation: isEditing ? 4 : 0,
+     }}>
       
       {isEditing ? (
         // YENİ VE ŞIK DÜZENLEME MODU GÖRÜNÜMÜ
@@ -100,21 +104,26 @@ const ProfilePostCard = ({
       ) : (
         // NORMAL GÖRÜNÜM (Aynı kalıyor)
         <>
-          {isAnonymous && (
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 8,
-            }}>
-              <UserCircle size={16} color={colors.textMuted} />
-              <Text style={{
-                fontFamily: 'Nunito-SemiBold',
-                fontSize: 12,
-                color: colors.textMuted,
-                marginLeft: 6,
-              }}>Anonim Paylaşım</Text>
-            </View>
-          )}
+                     {isAnonymous && (
+             <View style={{
+               flexDirection: 'row',
+               alignItems: 'center',
+               marginBottom: 8,
+               paddingHorizontal: 8,
+               paddingVertical: 4,
+               backgroundColor: colors.primaryButton + '15',
+               borderRadius: 8,
+               alignSelf: 'flex-start',
+             }}>
+               <UserCircle size={16} color={colors.primaryButton} />
+               <Text style={{
+                 fontFamily: 'Nunito-SemiBold',
+                 fontSize: 12,
+                 color: colors.primaryButton,
+                 marginLeft: 6,
+               }}>Anonim Paylaşım</Text>
+             </View>
+           )}
           <Text style={{
             fontFamily: 'Nunito-Regular',
             fontSize: 16,
@@ -161,7 +170,19 @@ const ProfilePostCard = ({
 };
 
 // Twitter tarzı minimal istatistikler
-const StatMinimal = ({ stats, colors, router }: { stats: any; colors: any; router: any }) => {
+const StatMinimal = ({ 
+  stats, 
+  colors, 
+  router, 
+  showAnonymousPosts, 
+  onTogglePosts 
+}: { 
+  stats: any; 
+  colors: any; 
+  router: any;
+  showAnonymousPosts: boolean;
+  onTogglePosts: () => void;
+}) => {
   return (
     <View style={{
       backgroundColor: colors.card,
@@ -175,7 +196,16 @@ const StatMinimal = ({ stats, colors, router }: { stats: any; colors: any; route
         justifyContent: 'space-around',
         alignItems: 'center',
       }}>
-        <View style={{ alignItems: 'center' }}>
+        <TouchableOpacity 
+          style={{ 
+            alignItems: 'center',
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 8,
+            backgroundColor: showAnonymousPosts ? colors.primaryButton + '15' : 'transparent',
+          }}
+          onPress={onTogglePosts}
+        >
           <Text style={{
             fontFamily: 'Nunito-ExtraBold',
             fontSize: 18,
@@ -184,9 +214,11 @@ const StatMinimal = ({ stats, colors, router }: { stats: any; colors: any; route
           <Text style={{
             fontFamily: 'Nunito-SemiBold',
             fontSize: 14,
-            color: colors.textMuted,
-          }}>Yazı</Text>
-        </View>
+            color: showAnonymousPosts ? colors.primaryButton : colors.textMuted,
+          }}>
+            {showAnonymousPosts ? 'Anonim' : 'Yazı'}
+          </Text>
+        </TouchableOpacity>
         <View style={{
           width: 1,
           height: '80%',
@@ -256,6 +288,9 @@ export default function ProfileScreen() {
   // Yeni inline düzenleme state'leri
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [currentEditText, setCurrentEditText] = useState<string>('');
+  
+  // İstatistik toggle state'i
+  const [showAnonymousPosts, setShowAnonymousPosts] = useState(false);
 
   // Header animasyonu için
   const headerOpacity = useSharedValue(1);
@@ -312,16 +347,24 @@ export default function ProfileScreen() {
           // Kullanıcının gönderilerini getir (anonim olanları hariç)
           const userPosts = await postsService.getUserPosts(user.id);
           
-          // Kendi profilinde anonim paylaşımları gösterme
-          const publicPosts = userPosts.data.filter(post => !post.isAnonymous);
-          
-          console.log('🔍 Profile post filtreleme:', {
-            toplam: userPosts.data.length,
-            anonimKendi: userPosts.data.filter(p => p.isAnonymous).length,
-            publicGosterilen: publicPosts.length
-          });
-          
-          setPosts(publicPosts);
+                     // Tüm postları göster - anonim ve normal
+           const allPosts = userPosts.data;
+           
+           // Toggle durumuna göre postları filtrele
+           const filteredPosts = showAnonymousPosts 
+             ? allPosts.filter(post => post.isAnonymous) // Sadece anonim
+             : allPosts.filter(post => !post.isAnonymous); // Sadece normal
+           
+           console.log('🔍 Profile post filtreleme:', {
+             toplam: allPosts.length,
+             anonimKendi: allPosts.filter(p => p.isAnonymous).length,
+             normalKendi: allPosts.filter(p => !p.isAnonymous).length,
+             toggleDurumu: showAnonymousPosts ? 'Anonim' : 'Normal',
+             gosterilen: filteredPosts.length,
+             not: 'Artık kendi profilinde de anonim paylaşımlar görünür!'
+           });
+           
+           setPosts(filteredPosts);
 
           // İstatistikleri hesapla - kullanıcının beğeni ve favori sayıları
           // API'den gerçek beğeni ve favori sayılarını al
@@ -347,11 +390,16 @@ export default function ProfileScreen() {
             console.error('İstatistik hesaplanırken hata:', error);
           }
 
-          setStats({
-            postCount: userPosts.data.length,
-            likeCount: userLikedCount,        // Kullanıcının beğendiği post sayısı
-            favoriteCount: userFavoriteCount, // Kullanıcının favorilediği post sayısı
-          });
+                     // Toggle durumuna göre post sayısını ayarla
+           const postCount = showAnonymousPosts 
+             ? allPosts.filter(post => post.isAnonymous).length
+             : allPosts.filter(post => !post.isAnonymous).length;
+           
+           setStats({
+             postCount: postCount,
+             likeCount: userLikedCount,        // Kullanıcının beğendiği post sayısı
+             favoriteCount: userFavoriteCount, // Kullanıcının favorilediği post sayısı
+           });
         } catch (error) {
           console.error('Veri yüklenirken hata:', error);
           showFeedback({ message: 'Veriler yüklenirken hata oluştu', type: 'error' });
@@ -361,7 +409,7 @@ export default function ProfileScreen() {
       };
 
       fetchAllData();
-    }, [user, token, showFeedback])
+    }, [user, token, showFeedback, showAnonymousPosts])
   );
 
 
@@ -471,9 +519,15 @@ export default function ProfileScreen() {
               </Link>
             </View>
 
-            <View style={styles.statsContainer}>
-              <StatMinimal stats={stats} colors={colors} router={router} />
-            </View>
+                         <View style={styles.statsContainer}>
+               <StatMinimal 
+                 stats={stats} 
+                 colors={colors} 
+                 router={router}
+                 showAnonymousPosts={showAnonymousPosts}
+                 onTogglePosts={() => setShowAnonymousPosts(!showAnonymousPosts)}
+               />
+             </View>
           </Animated.View>
 
           <View style={styles.contentContainer}>

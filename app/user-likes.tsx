@@ -160,7 +160,7 @@ export default function UserLikesScreen() {
             </View>
             <View>
               <Text style={styles.authorName}>
-                {item.authorName || 'Anonim'}
+                {item.isAnonymous ? 'Anonim' : (item.authorName || 'Kullanıcı')}
               </Text>
               <Text style={styles.postDate}>
                 {timeAgo(item.createdAt)}

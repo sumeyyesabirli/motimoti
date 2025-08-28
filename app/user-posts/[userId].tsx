@@ -75,6 +75,8 @@ export default function UserPostsScreen() {
       }
       
       console.log('📱 Kullanıcı paylaşımları sayfası: API çağrısı başlatılıyor', userId);
+      console.log('🔍 NOT: Artık anonim paylaşımlar da görünecek!');
+      console.log('🔍 NOT: Normal paylaşımlar gerçek kullanıcı ismi ile görünecek!');
       
       const response = await postsService.getUserPosts(userId);
       
@@ -89,20 +91,23 @@ export default function UserPostsScreen() {
           }))
         });
         
-        // Anonim paylaşımları filtrele - kullanıcı profilinde gösterilmemeli
-        const publicPosts = response.data.filter(post => !post.isAnonymous);
+        // Anonim paylaşımları da göster - gizlilik korunacak ama anonim paylaşımlar görünecek
+        // Sadece kendi profilinde anonim paylaşımlar gizli kalacak
+        const allPosts = response.data;
         
         console.log('🔍 Post filtreleme:', {
           toplam: response.data.length,
           anonim: response.data.filter(p => p.isAnonymous).length,
-          publicGosterilen: publicPosts.length
+          normal: response.data.filter(p => !p.isAnonymous).length,
+          gosterilen: allPosts.length,
+          not: 'Anonim paylaşımlar artık görünür!'
         });
         
-        setPosts(publicPosts);
+        setPosts(allPosts);
         
-        // İlk public posttan kullanıcı bilgilerini çıkar
-        if (publicPosts.length > 0) {
-          const firstPost = publicPosts[0];
+        // İlk posttan kullanıcı bilgilerini çıkar (anonim olabilir)
+        if (allPosts.length > 0) {
+          const firstPost = allPosts[0];
           setUserProfile({
             id: userId,
             username: firstPost.authorName || 'Kullanıcı',
@@ -178,17 +183,26 @@ export default function UserPostsScreen() {
   };
 
   const renderPostItem = ({ item }: { item: Post }) => (
-    <View style={styles.postItem}>
+    <View style={[
+      styles.postItem,
+      item.isAnonymous && { borderColor: colors.primaryButton + '40', borderWidth: 2 }
+    ]}>
       <View style={styles.postHeader}>
         <View style={styles.authorInfo}>
-          <View style={styles.authorAvatar}>
+          <View style={[
+            styles.authorAvatar,
+            item.isAnonymous && { backgroundColor: colors.primaryButton + '20' }
+          ]}>
             <Text style={styles.authorAvatarText}>
-              {item.isAnonymous ? '🎭' : (userProfile?.displayName || userProfile?.username)?.charAt(0).toUpperCase()}
+              {item.isAnonymous ? '🎭' : (userProfile?.displayName || userProfile?.username || 'A')?.charAt(0).toUpperCase()}
             </Text>
           </View>
           <View>
-            <Text style={styles.authorName}>
-              {item.isAnonymous ? item.authorName : userProfile?.displayName || userProfile?.username}
+            <Text style={[
+              styles.authorName,
+              item.isAnonymous && { color: colors.primaryButton }
+            ]}>
+              {item.isAnonymous ? 'Anonim' : userProfile?.displayName || userProfile?.username}
             </Text>
             <Text style={styles.postDate}>
               {formatDate(item.createdAt)}
@@ -196,8 +210,8 @@ export default function UserPostsScreen() {
           </View>
         </View>
         {item.isAnonymous && (
-          <View style={styles.anonBadge}>
-            <Text style={styles.anonBadgeText}>Anonim</Text>
+          <View style={[styles.anonBadge, { backgroundColor: colors.primaryButton + '20' }]}>
+            <Text style={[styles.anonBadgeText, { color: colors.primaryButton }]}>Anonim</Text>
           </View>
         )}
       </View>

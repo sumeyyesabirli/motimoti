@@ -117,7 +117,9 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, localLikes
               }
             }}
           >
-            <Text style={styles.postAuthor}>{item.authorName || 'Anonim'}</Text>
+            <Text style={styles.postAuthor}>
+              {item.isAnonymous ? 'Anonim' : (item.authorName || 'Kullanıcı')}
+            </Text>
             <Text style={styles.postTimestamp}>{timeAgo(item.createdAt)}</Text>
           </TouchableOpacity>
         </View>
@@ -179,7 +181,7 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, localLikes
                 // Metni kısalt (çok uzun olmasın)
                 const shortText = item.text.length > 100 ? item.text.substring(0, 100) + '...' : item.text;
                 
-                const shareMessage = `"${shortText}"\n\n👤 ${item.isAnonymous ? 'Anonim' : item.authorName}\n📱 MotiMoti'de paylaşıldı\n\n🔗 ${postLink}`;
+                const shareMessage = `"${shortText}"\n\n👤 ${item.isAnonymous ? 'Anonim' : (item.authorName || 'Kullanıcı')}\n📱 MotiMoti'de paylaşıldı\n\n🔗 ${postLink}`;
                 
                 const result = await Share.share({
                   message: shareMessage,
