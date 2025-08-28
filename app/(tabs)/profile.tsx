@@ -344,27 +344,16 @@ export default function ProfileScreen() {
           const userProfile = await getUserProfile(user.id);
           setUserData(userProfile.data);
 
-          // Kullanıcının gönderilerini getir (anonim olanları hariç)
+          // API artık varsayılan olarak doğru postları getiriyor
           const userPosts = await postsService.getUserPosts(user.id);
+          setPosts(userPosts.data);
           
-                     // Tüm postları göster - anonim ve normal
-           const allPosts = userPosts.data;
-           
-           // Toggle durumuna göre postları filtrele
-           const filteredPosts = showAnonymousPosts 
-             ? allPosts.filter(post => post.isAnonymous) // Sadece anonim
-             : allPosts.filter(post => !post.isAnonymous); // Sadece normal
-           
-           console.log('🔍 Profile post filtreleme:', {
-             toplam: allPosts.length,
-             anonimKendi: allPosts.filter(p => p.isAnonymous).length,
-             normalKendi: allPosts.filter(p => !p.isAnonymous).length,
-             toggleDurumu: showAnonymousPosts ? 'Anonim' : 'Normal',
-             gosterilen: filteredPosts.length,
-             not: 'Artık kendi profilinde de anonim paylaşımlar görünür!'
-           });
-           
-           setPosts(filteredPosts);
+          console.log('🔍 Profile post yüklendi:', {
+            toplam: userPosts.data.length,
+            anonimKendi: userPosts.data.filter(p => p.isAnonymous).length,
+            normalKendi: userPosts.data.filter(p => !p.isAnonymous).length,
+            not: 'API varsayılan olarak doğru postları getiriyor!'
+          });
 
           // İstatistikleri hesapla - kullanıcının beğeni ve favori sayıları
           // API'den gerçek beğeni ve favori sayılarını al
@@ -390,10 +379,10 @@ export default function ProfileScreen() {
             console.error('İstatistik hesaplanırken hata:', error);
           }
 
-                     // Toggle durumuna göre post sayısını ayarla
-           const postCount = showAnonymousPosts 
-             ? allPosts.filter(post => post.isAnonymous).length
-             : allPosts.filter(post => !post.isAnonymous).length;
+          // Toggle durumuna göre post sayısını ayarla
+          const postCount = showAnonymousPosts 
+            ? userPosts.data.filter(post => post.isAnonymous).length
+            : userPosts.data.filter(post => !post.isAnonymous).length;
            
            setStats({
              postCount: postCount,

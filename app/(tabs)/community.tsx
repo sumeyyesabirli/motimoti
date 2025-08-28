@@ -103,15 +103,17 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, localLikes
           <TouchableOpacity 
             style={[styles.authorInfo, item.isAnonymous && styles.authorInfoAnonymous]}
             onPress={() => {
-              // Anonim paylaşımlar için profil linkini devre dışı bırak
-              if (item.isAnonymous) {
-                console.log('🎭 Anonim paylaşım - profil erişimi engellendi');
-                return;
-              }
-              
               if (item.authorId) {
                 console.log('👤 Kullanıcı profiline gidiliyor:', item.authorId);
-                router.push(`/user-posts/${item.authorId}`);
+                
+                // Yönlendirmeyi sadece gerekli parametrelerle yapıyoruz
+                router.push({
+                  pathname: `/user/${item.authorId}`,
+                  params: {
+                    // Sadece hangi modda olduğumuzu gönderiyoruz
+                    viewMode: item.isAnonymous ? 'anonymous' : 'public',
+                  }
+                });
               } else {
                 console.log('⚠️ AuthorId yok - profil erişimi mümkün değil');
               }

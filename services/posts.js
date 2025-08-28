@@ -49,13 +49,20 @@ export async function getPosts(params = { page: 1, limit: 10 }) {
   return res.data;
 }
 
-export async function getUserPosts(userId, params = { page: 1, limit: 10 }) {
-  console.log('🚀 Get User Posts isteği:', { userId, params });
+export async function getUserPosts(userId, isAnonymous) {
+  console.log('🚀 Get User Posts isteği:', { userId, isAnonymous });
   
-  const res = await api.get(`/posts/user/${userId}`, { params });
+  // Eğer isAnonymous parametresi geldiyse, URL'e ekle
+  let url = `/posts/user/${userId}`;
+  if (isAnonymous !== undefined) {
+    url += `?isAnonymous=${isAnonymous}`;
+  }
+  
+  const res = await api.get(url);
   
   console.log('✅ Get User Posts başarılı:', {
     userId,
+    isAnonymous,
     postCount: res.data.data?.length || 0,
     pagination: res.data.pagination
   });

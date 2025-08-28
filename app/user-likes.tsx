@@ -149,7 +149,14 @@ export default function UserLikesScreen() {
             style={styles.authorInfo}
             onPress={() => {
               if (item.authorId) {
-                router.push(`/user-posts/${item.authorId}`);
+                // Yönlendirmeyi sadece gerekli parametrelerle yapıyoruz
+                router.push({
+                  pathname: `/user/${item.authorId}`,
+                  params: {
+                    // Sadece hangi modda olduğumuzu gönderiyoruz
+                    viewMode: item.isAnonymous ? 'anonymous' : 'public',
+                  }
+                });
               }
             }}
           >
