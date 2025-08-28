@@ -3,9 +3,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Link, useFocusEffect, useRouter } from 'expo-router';
 import * as postsService from '../../services/posts';
-import { Heart, Plus, Star } from 'phosphor-react-native';
+import { Heart, Plus, Star, Share as ShareIcon } from 'phosphor-react-native';
 import React, { useMemo, useEffect } from 'react';
-import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Share, Linking } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing, withSpring } from 'react-native-reanimated';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -166,6 +166,46 @@ const PostCard = ({ item, colors, onLike, onFavorite, userId, isLast, localLikes
             <Text style={[styles.actionText, isFavorited && styles.favoritedText]}>
               {finalFavoriteCount}
             </Text>
+          </TouchableOpacity>
+
+          {/* Paylaşım Butonu */}
+          <TouchableOpacity 
+            style={styles.actionButton} 
+            onPress={async () => {
+              try {
+                // Gönderiye özel link oluştur
+                const postLink = `https://motimoti.app/post/${item.id}`;
+                
+                // Metni kısalt (çok uzun olmasın)
+                const shortText = item.text.length > 100 ? item.text.substring(0, 100) + '...' : item.text;
+                
+                const shareMessage = `"${shortText}"\n\n👤 ${item.isAnonymous ? 'Anonim' : item.authorName}\n📱 MotiMoti'de paylaşıldı\n\n🔗 ${postLink}`;
+                
+                const result = await Share.share({
+                  message: shareMessage,
+                  title: 'MotiMoti Paylaşımı',
+                  url: postLink, // iOS için URL ekle
+                });
+                
+                // Paylaşım başarılı olduysa log kaydı
+                if (result.action === Share.sharedAction) {
+                  console.log('📱 Paylaşım başarılı:', {
+                    activityType: result.activityType,
+                    postId: item.id.substring(0, 8) + '...',
+                    sharedLink: postLink
+                  });
+                }
+              } catch (error) {
+                console.error('❌ Paylaşım hatası:', error);
+              }
+            }}
+          >
+            <ShareIcon 
+              size={16} 
+              color={colors.textMuted} 
+              weight="regular" 
+            />
+            <Text style={styles.actionText}>Paylaş</Text>
           </TouchableOpacity>
         </View>
       </View>
