@@ -41,8 +41,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const storedToken = await AsyncStorage.getItem('authToken');
         if (storedToken) {
           setToken(storedToken);
+          
           // Token ile kullanıcı bilgilerini getir
-          // Bu kısım API'den kullanıcı bilgisi döndüğünde güncellenecek
+          try {
+            const userResponse = await authService.getProfile();
+            if (userResponse.success) {
+              setUser(userResponse.data);
+            }
+          } catch (error) {
+            console.error('Kullanıcı bilgileri getirilemedi:', error);
+            // Token geçersizse temizle
+            await AsyncStorage.removeItem('authToken');
+            setToken(null);
+          }
         }
       } catch (error) {
         console.error('Token kontrol edilirken hata:', error);
@@ -64,6 +75,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { user: userData, token: authToken } = response.data;
         setUser(userData);
         setToken(authToken);
+        
+        // Token'ı AsyncStorage'a kaydet
+        await AsyncStorage.setItem('authToken', authToken);
       } else {
         throw new Error(response.message || 'Giriş yapılamadı');
       }
@@ -86,6 +100,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { user: newUser, token: authToken } = response.data;
         setUser(newUser);
         setToken(authToken);
+        
+        // Token'ı AsyncStorage'a kaydet
+        await AsyncStorage.setItem('authToken', authToken);
       } else {
         throw new Error(response.message || 'Kayıt yapılamadı');
       }
@@ -100,6 +117,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await authService.logout();
       setUser(null);
       setToken(null);
+      
+      // AsyncStorage'dan token'ı sil
+      await AsyncStorage.removeItem('authToken');
     } catch (error) {
       console.error('SignOut error:', error);
     }
