@@ -1,12 +1,11 @@
-import React, { useEffect, useState, useLayoutEffect } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useState, useLayoutEffect, useRef } from 'react';
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, Animated } from 'react-native';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import * as postsService from '../../services/posts';
 import { useTheme } from '../../context/ThemeContext';
 import Post from '../../components/Post/Post';
 import { UserCircle } from 'phosphor-react-native';
-import { getPlatformShadow } from '../../hooks/useResponsive'; // getPlatformShadow'u import et
-
+import { getPlatformShadow } from '../../hooks/useResponsive';
 
 export default function UserProfileScreen() {
     const { colors } = useTheme();
@@ -16,22 +15,22 @@ export default function UserProfileScreen() {
     const [posts, setPosts] = useState<any[]>([]);
     const [authorName, setAuthorName] = useState('');
     const [loading, setLoading] = useState(true);
+    
+    // Yanıp sönen ışık için Animated değeri
+    const pulseAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         if (id) {
             const fetchPosts = async () => {
                 setLoading(true);
-
                 const shouldFetchAnonymous = viewMode === 'anonymous';
                 const response = await postsService.getUserPosts(id, shouldFetchAnonymous);
 
                 if (response.success && response.data.length > 0) {
                     setPosts(response.data);
-                    // Yazar adını ilk posttan güvenli bir şekilde al
                     setAuthorName(response.data[0].authorName);
                 } else {
-                    setPosts([]); // Post yoksa listeyi boşalt
-                    // Post olmasa bile başlığı doğru set et
+                    setPosts([]);
                     setAuthorName(viewMode === 'anonymous' ? 'Anonim' : 'Kullanıcı');
                 }
                 setLoading(false);
@@ -40,7 +39,28 @@ export default function UserProfileScreen() {
         }
     }, [id, viewMode]);
 
-    // Başlığı, veri geldikten sonra dinamik olarak güncelle
+    // Yanıp sönen ışık animasyonu
+    useEffect(() => {
+        const pulseAnimation = Animated.loop(
+            Animated.sequence([
+                Animated.timing(pulseAnim, {
+                    toValue: 1.3,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(pulseAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        
+        pulseAnimation.start();
+        
+        return () => pulseAnimation.stop();
+    }, [pulseAnim]);
+
     useLayoutEffect(() => {
         const title = viewMode === 'anonymous' 
             ? 'Anonim Paylaşımlar' 
@@ -53,8 +73,7 @@ export default function UserProfileScreen() {
             },
         });
     }, [navigation, authorName, viewMode]);
-
-    // Stil dosyasını burada oluşturalım
+    
     const styles = getStyles(colors);
 
     if (loading) {
@@ -63,68 +82,133 @@ export default function UserProfileScreen() {
 
     return (
         <ScrollView style={styles.container}>
-            {/* YENİ VE UYGULAMAYA UYGUN PROFİL KARTI BAŞLIĞI */}
-            <View style={styles.profileHeader}>
-                <View style={styles.avatarContainer}>
-                    <UserCircle size={48} color={colors.primaryButton} weight="light" />
-                </View>
-                <Text style={styles.headerAuthorName}>{authorName}</Text>
-                <Text style={styles.headerPostCount}>{posts.length} Paylaşım</Text>
+            {/* Minimal Tasarım */}
+            
+            {/* Sade Profil Başlığı */}
+            <View style={styles.minimalHeader}>
+                <UserCircle size={48} color={colors.primaryButton} weight="light" />
+                <Text style={styles.minimalName}>{authorName}</Text>
+                <Text style={styles.minimalCount}>{posts.length} Paylaşım</Text>
             </View>
-
-            {/* POST LİSTESİ */}
-            {posts.length > 0 ? (
-                posts.map(post => <Post key={post.id} post={post} />)
-            ) : (
-                <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Bu kullanıcının henüz bir paylaşımı yok.</Text>
-                </View>
-            )}
+            
+            {/* Post Listesi */}
+            <View style={styles.postsSection}>
+                {posts.length > 0 ? (
+                    <>
+                        <View style={styles.postsList}>
+                            {posts.map((post, index) => (
+                                <View key={post.id}>
+                                    <Post post={post} />
+                                    {index < posts.length - 1 && (
+                                        <View style={styles.postDivider}>
+                                            <View style={styles.dividerLine} />
+                                            <View style={styles.orangeDot}>
+                                                <Animated.View 
+                                                    style={[
+                                                        styles.pulseLight,
+                                                        {
+                                                            transform: [{ scale: pulseAnim }],
+                                                            opacity: pulseAnim.interpolate({
+                                                                inputRange: [1, 1.3],
+                                                                outputRange: [0.6, 1],
+                                                            }),
+                                                        }
+                                                    ]} 
+                                                />
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                            ))}
+                        </View>
+                    </>
+                ) : (
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>Bu kullanıcının henüz bir paylaşımı yok.</Text>
+                    </View>
+                )}
+            </View>
         </ScrollView>
     );
 }
 
-// YENİ VE TASARIMA UYGUN STİLLER
 const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.background,
     },
-    profileHeader: {
-        backgroundColor: colors.card,
-        borderRadius: 16, // Daha uygun kenarlar
-        marginHorizontal: 16,
-        marginTop: 12,
-        paddingVertical: 20,
+    minimalHeader: {
         alignItems: 'center',
-        marginBottom: 12,
-        ...getPlatformShadow(2, colors.shadow), // Gölgelendirme
+        paddingVertical: 24,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border + '30',
     },
-    avatarContainer: {
-        backgroundColor: colors.primaryButton + '20', // Tema renginin açık tonu
-        borderRadius: 50,
-        width: 72,
-        height: 72,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    headerAuthorName: {
-        fontFamily: 'Nunito-ExtraBold',
-        fontSize: 26,
+    minimalName: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: 20,
         color: colors.textDark,
+        marginTop: 12,
+        marginBottom: 4,
     },
-    headerPostCount: {
+    minimalCount: {
         fontFamily: 'Nunito-SemiBold',
         fontSize: 14,
         color: colors.textMuted,
-        marginTop: 4,
+    },
+    postsSection: {
+        paddingHorizontal: 16,
+        paddingTop: 20,
+    },
+    sectionTitle: {
+        fontFamily: 'Nunito-Bold',
+        fontSize: 18,
+        color: colors.textDark,
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    postsList: {
+        gap: 0,
+    },
+    postWrapper: {
+        marginBottom: 8,
+    },
+    postDivider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: colors.primaryButton + '40',
+    },
+    orangeDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: colors.primaryButton,
+        marginLeft: 12,
+        shadowColor: colors.primaryButton,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    pulseLight: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.background,
     },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 50,
+        paddingVertical: 50,
     },
     emptyText: {
         textAlign: 'center',
