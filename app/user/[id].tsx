@@ -5,7 +5,6 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-nativ
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import * as postsService from '../../services/posts';
 import { useTheme } from '../../context/ThemeContext';
-// Post component'i mevcut değil, basit bir kart oluşturuyoruz
 
 // Basit post kartı component'i
 const SimplePostCard = ({ item, colors }: { item: any; colors: any }) => {
@@ -85,35 +84,36 @@ export default function UserProfileScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Başlangıçta geçici bir başlık ayarlayalım
-    const initialTitle = viewMode === 'anonymous' ? 'Anonim Paylaşımlar' : 'Kullanıcı Paylaşımları';
-    navigation.setOptions({ title: initialTitle });
+    const fetchPostsAndSetTitle = async () => {
+      if (!id || !viewMode) return;
 
-    if (id && viewMode) {
-      const fetchPosts = async () => {
-        setLoading(true);
-        const shouldFetchAnonymous = viewMode === 'anonymous';
-        const response = await postsService.getUserPosts(id, shouldFetchAnonymous);
+      setLoading(true);
+      navigation.setOptions({ title: 'Yükleniyor...' }); // 1. Geçici başlık ayarla
 
-        if (response.success) {
-          setPosts(response.data);
-          
-          // Veri geldikten sonra başlığı GÜNCEL ve DOĞRU veriyle ayarla
-          if (response.data.length > 0) {
-            const authorName = response.data[0].authorName;
-            const finalTitle = viewMode === 'anonymous' 
-              ? `${authorName}'in Paylaşımları` 
-              : `${authorName}'in Paylaşımları`;
-            navigation.setOptions({ title: finalTitle });
-          }
+      const shouldFetchAnonymous = viewMode === 'anonymous';
+      const response = await postsService.getUserPosts(id, shouldFetchAnonymous);
+
+      if (response.success) {
+        setPosts(response.data);
+        
+        // 2. Veri geldikten sonra başlığı GÜNCEL ve DOĞRU veriyle ayarla
+        if (response.data.length > 0) {
+          // Güvenilir kaynak: API'den gelen ilk postun yazar adı
+          const authorName = response.data[0].authorName;
+          navigation.setOptions({ title: `${authorName}'in Paylaşımları` });
         } else {
-          console.error("Failed to fetch user posts:", response.message);
+          // Post yoksa, moda uygun bir varsayılan başlık ayarla
+          const fallbackTitle = viewMode === 'anonymous' ? 'Anonim Paylaşımlar' : 'Kullanıcı Paylaşımları';
+          navigation.setOptions({ title: fallbackTitle });
         }
-        setLoading(false);
-      };
+      } else {
+        console.error("Failed to fetch user posts:", response.message);
+        navigation.setOptions({ title: 'Hata Oluştu' });
+      }
+      setLoading(false);
+    };
 
-      fetchPosts();
-    }
+    fetchPostsAndSetTitle();
   }, [id, viewMode]);
 
   return (
