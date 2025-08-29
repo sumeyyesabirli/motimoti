@@ -5,6 +5,8 @@ import * as postsService from '../../services/posts';
 import { useTheme } from '../../context/ThemeContext';
 import Post from '../../components/Post/Post';
 import { UserCircle } from 'phosphor-react-native';
+import { getPlatformShadow } from '../../hooks/useResponsive'; // getPlatformShadow'u import et
+
 
 export default function UserProfileScreen() {
     const { colors } = useTheme();
@@ -19,7 +21,7 @@ export default function UserProfileScreen() {
         if (id) {
             const fetchPosts = async () => {
                 setLoading(true);
-                console.log('🔍 Fetching posts for user:', id, 'viewMode:', viewMode);
+
                 const shouldFetchAnonymous = viewMode === 'anonymous';
                 const response = await postsService.getUserPosts(id, shouldFetchAnonymous);
 
@@ -46,6 +48,9 @@ export default function UserProfileScreen() {
         
         navigation.setOptions({
             title: title,
+            headerTitleStyle: {
+                fontFamily: 'Nunito-Bold',
+            },
         });
     }, [navigation, authorName, viewMode]);
 
@@ -58,10 +63,10 @@ export default function UserProfileScreen() {
 
     return (
         <ScrollView style={styles.container}>
-            {/* YENİ VE RENKLİ PROFİL BAŞLIĞI */}
+            {/* YENİ VE UYGULAMAYA UYGUN PROFİL KARTI BAŞLIĞI */}
             <View style={styles.profileHeader}>
                 <View style={styles.avatarContainer}>
-                    <UserCircle size={64} color={colors.primaryButton} weight="light" />
+                    <UserCircle size={48} color={colors.primaryButton} weight="light" />
                 </View>
                 <Text style={styles.headerAuthorName}>{authorName}</Text>
                 <Text style={styles.headerPostCount}>{posts.length} Paylaşım</Text>
@@ -71,12 +76,15 @@ export default function UserProfileScreen() {
             {posts.length > 0 ? (
                 posts.map(post => <Post key={post.id} post={post} />)
             ) : (
-                <Text style={styles.emptyText}>Bu kullanıcının henüz bir paylaşımı yok.</Text>
+                <View style={styles.emptyContainer}>
+                    <Text style={styles.emptyText}>Bu kullanıcının henüz bir paylaşımı yok.</Text>
+                </View>
             )}
         </ScrollView>
     );
 }
 
+// YENİ VE TASARIMA UYGUN STİLLER
 const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
@@ -84,40 +92,44 @@ const getStyles = (colors: any) => StyleSheet.create({
     },
     profileHeader: {
         backgroundColor: colors.card,
-        paddingVertical: 24,
+        borderRadius: 16, // Daha uygun kenarlar
+        marginHorizontal: 16,
+        marginTop: 12,
+        paddingVertical: 20,
         alignItems: 'center',
-        marginBottom: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        marginBottom: 12,
+        ...getPlatformShadow(2, colors.shadow), // Gölgelendirme
     },
-    headerAuthorName: {
-        fontFamily: 'Nunito-ExtraBold',
-        fontSize: 22,
-        color: colors.textDark,
-        marginTop: 12,
-    },
-    // YENİ STİL: Avatar için renkli arka plan
     avatarContainer: {
-        backgroundColor: colors.primaryButton + '20', // Ana rengin şeffaf hali
+        backgroundColor: colors.primaryButton + '20', // Tema renginin açık tonu
         borderRadius: 50,
-        padding: 8,
+        width: 72,
+        height: 72,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
     },
     headerAuthorName: {
         fontFamily: 'Nunito-ExtraBold',
-        fontSize: 22,
+        fontSize: 26,
         color: colors.textDark,
-        marginTop: 12,
     },
     headerPostCount: {
         fontFamily: 'Nunito-SemiBold',
         fontSize: 14,
-        color: colors.primaryButton, // Rengi daha belirgin hale getirdik
+        color: colors.textMuted,
         marginTop: 4,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 50,
     },
     emptyText: {
         textAlign: 'center',
-        marginTop: 50,
         color: colors.textMuted,
         fontFamily: 'Nunito-SemiBold',
+        fontSize: 16,
     },
 });
