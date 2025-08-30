@@ -13,9 +13,14 @@ export default function UserLikesScreen() {
   useEffect(() => {
     const fetchLikedPosts = async () => {
       setLoading(true);
+      console.log('🚀 Beğendiklerim API çağrılıyor...');
       const response = await postsService.getLikedPosts();
+      console.log('📡 Beğendiklerim API Response:', response);
       if (response.success) {
+        console.log('✅ Beğendiklerim başarılı, post sayısı:', response.data?.length || 0);
         setPosts(response.data);
+      } else {
+        console.log('❌ Beğendiklerim hatası:', response.message);
       }
       setLoading(false);
     };

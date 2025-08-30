@@ -57,3 +57,14 @@ export async function forgotPassword(email) {
   const res = await api.post('/auth/forgot-password', { email });
   return res.data;
 }
+
+// Token'ı AsyncStorage'dan al
+export async function getToken() {
+  try {
+    const token = await AsyncStorage.getItem('auth_token');
+    return token;
+  } catch (error) {
+    console.error('❌ Token alınırken hata:', error);
+    return null;
+  }
+}

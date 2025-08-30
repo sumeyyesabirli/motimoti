@@ -13,10 +13,14 @@ export default function UserFavoritesScreen() {
   useEffect(() => {
     const fetchFavoritePosts = async () => {
       setLoading(true);
-      // Sadece bu satır değişiyor
+      console.log('🚀 Favorilerim API çağrılıyor...');
       const response = await postsService.getFavoritePosts(); 
+      console.log('📡 Favorilerim API Response:', response);
       if (response.success) {
+        console.log('✅ Favorilerim başarılı, post sayısı:', response.data?.length || 0);
         setPosts(response.data);
+      } else {
+        console.log('❌ Favorilerim hatası:', response.message);
       }
       setLoading(false);
     };
@@ -36,7 +40,6 @@ export default function UserFavoritesScreen() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => <Post post={item} />}
           contentContainerStyle={{ paddingTop: 10 }}
-          // ve bu satır değişiyor
           ListEmptyComponent={<Text style={styles.emptyText}>Henüz bir paylaşımı favorilerine eklememişsin.</Text>}
         />
       )}

@@ -264,11 +264,15 @@ export async function invalidateCache(userId = null) {
 export const getLikedPosts = async () => {
   try {
     const token = await getToken();
+    console.log('🔑 Token alındı:', token ? 'Var' : 'Yok');
     const response = await api.get('/posts/liked', {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return { success: true, data: response.data };
+    console.log('📡 Raw API Response:', response);
+    // Prisma güncellemesi sonrası response format'ı
+    return { success: true, data: response.data.data || response.data };
   } catch (error) {
+    console.log('❌ API Hatası:', error);
     return { success: false, message: error.response?.data?.message || 'Error' };
   }
 };
@@ -277,11 +281,15 @@ export const getLikedPosts = async () => {
 export const getFavoritePosts = async () => {
   try {
     const token = await getToken();
+    console.log('🔑 Token alındı:', token ? 'Var' : 'Yok');
     const response = await api.get('/posts/favorited', {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return { success: true, data: response.data };
+    console.log('📡 Raw API Response:', response);
+    // Prisma güncellemesi sonrası response format'ı
+    return { success: true, data: response.data.data || response.data };
   } catch (error) {
+    console.log('❌ API Hatası:', error);
     return { success: false, message: error.response?.data?.message || 'Error' };
   }
 };
