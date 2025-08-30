@@ -2,6 +2,7 @@ import { api } from './api';
 import { API_ENDPOINTS } from '../constants/apiConfig';
 import { optimizedPostsService } from './optimizedPostsService';
 import Logger from '../utils/logger';
+import { getToken } from './auth';
 
 export async function createPost(data) {
   const startTime = Date.now();
@@ -170,76 +171,7 @@ export async function unfavoritePost(postId) {
   return res.data;
 }
 
-// ============================================
-// YENİ: BEĞENİ VE FAVORİ LİSTELERİ
-// ============================================
 
-// Kendi beğendiklerim (authentication gerekli)
-export async function getLikedPosts(params = { page: 1, limit: 10 }) {
-  const startTime = Date.now();
-  
-  Logger.api('Beğenilen Postları Getir', {
-    method: 'GET',
-    url: API_ENDPOINTS.GET_LIKED_POSTS,
-    params
-  });
-  
-  const res = await api.get(API_ENDPOINTS.GET_LIKED_POSTS, { params });
-  const duration = Date.now() - startTime;
-  
-  // Debug: API response'u detaylı kontrol et
-  if (res.data.data && res.data.data.length > 0) {
-    const firstPost = res.data.data[0];
-    console.log('🔍 LIKED POSTS API DEBUG:', {
-      firstPostId: firstPost.id?.substring(0, 8) + '...',
-      likeCount: firstPost.likeCount,
-      favoriteCount: firstPost.favoriteCount,
-      likedBy: firstPost.likedBy,
-      favoritedBy: firstPost.favoritedBy,
-      likedByType: typeof firstPost.likedBy,
-      favoritedByType: typeof firstPost.favoritedBy,
-      likedByLength: firstPost.likedBy?.length,
-      favoritedByLength: firstPost.favoritedBy?.length
-    });
-  }
-  
-  Logger.success('Beğenilen Postlar Yüklendi', {
-    duration,
-    count: res.data.data?.length || 0,
-    pagination: res.data.pagination
-  });
-  
-  return res.data;
-}
-
-// Kendi favorilerim (authentication gerekli)  
-export async function getFavoritePosts(params = { page: 1, limit: 10 }) {
-  console.log('🚀 Favorilerim API isteği:', params);
-  
-  const res = await api.get(API_ENDPOINTS.GET_FAVORITE_POSTS, { params });
-  
-  // Debug: API response'u detaylı kontrol et
-  if (res.data.data && res.data.data.length > 0) {
-    const firstPost = res.data.data[0];
-    console.log('🔍 FAVORITE POSTS API DEBUG:', {
-      firstPostId: firstPost.id?.substring(0, 8) + '...',
-      likeCount: firstPost.likeCount,
-      favoriteCount: firstPost.favoriteCount,
-      likedBy: firstPost.likedBy,
-      favoritedBy: firstPost.favoritedBy,
-      likedByType: typeof firstPost.likedBy,
-      favoritedByType: typeof firstPost.favoritedBy,
-      likedByLength: firstPost.likedBy?.length,
-      favoritedByLength: firstPost.favoritedBy?.length
-    });
-  }
-  
-  console.log(`✅ Favorilerim yüklendi: ${res.data.data?.length || 0} post`, {
-    pagination: res.data.pagination
-  });
-  
-  return res.data;
-}
 
 // Belirli kullanıcının beğendikleri (public)
 export async function getUserLikedPosts(userId, params = { page: 1, limit: 10 }) {
@@ -280,13 +212,7 @@ export async function getUserPostStats(userId) {
   return await optimizedPostsService.getUserPostStats(userId);
 }
 
-/**
- * Kendi beğenilerin (cache'li)
- * @returns {Promise<Object>} Beğenilen gönderiler
- */
-export async function getLikedPostsCached() {
-  return await optimizedPostsService.getLikedPostsCached();
-}
+
 
 /**
  * Kendi favorilerin (cache'li)
@@ -329,5 +255,35 @@ export async function getCacheStatus() {
 export async function invalidateCache(userId = null) {
   return await optimizedPostsService.invalidateCache(userId);
 }
+
+// ============================================
+// 🚀 YENİ: BASİT API FONKSİYONLARI
+// ============================================
+
+// Giriş yapmış kullanıcının beğendiği postları getirir
+export const getLikedPosts = async () => {
+  try {
+    const token = await getToken();
+    const response = await api.get('/posts/liked', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, message: error.response?.data?.message || 'Error' };
+  }
+};
+
+// Giriş yapmış kullanıcının favorilediği postları getirir
+export const getFavoritePosts = async () => {
+  try {
+    const token = await getToken();
+    const response = await api.get('/posts/favorited', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return { success: false, message: error.response?.data?.message || 'Error' };
+  }
+};
 
 
