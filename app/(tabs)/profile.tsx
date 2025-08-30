@@ -227,7 +227,6 @@ const StatMinimal = ({
         <TouchableOpacity 
           style={{ alignItems: 'center' }}
           onPress={() => {
-            console.log('📊 Beğendiklerim sayfasına gidiliyor');
             router.push('/user-likes');
           }}
         >
@@ -250,7 +249,6 @@ const StatMinimal = ({
         <TouchableOpacity 
           style={{ alignItems: 'center' }}
           onPress={() => {
-            console.log('📊 Favorilerim sayfasına gidiliyor');
             router.push('/user-favorites');
           }}
         >

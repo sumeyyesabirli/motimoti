@@ -1,13 +1,15 @@
 import { useRouter } from 'expo-router';
 import { Heart, ArrowLeft, Star } from 'phosphor-react-native';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ActivityIndicator, 
   SafeAreaView, 
   StyleSheet, 
   Text, 
   TouchableOpacity, 
-  View
+  View,
+  ScrollView,
+  FlatList
 } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useTheme } from '../context/ThemeContext';
@@ -15,8 +17,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { useAuth } from '../context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { usePagination } from '../hooks/usePagination';
-import { PaginatedFlatList } from '../components/PaginatedFlatList';
+import * as postsService from '../services/posts';
 
 interface Post {
   id: string;
@@ -37,16 +38,28 @@ export default function UserFavoritesScreen() {
   const { user } = useAuth();
   const router = useRouter();
   
-  // Pagination hook kullan
-  const {
-    data: favoritePosts,
-    loading,
-    pagination,
-    loadMore,
-    refresh,
-    canLoadMore,
-    error
-  } = usePagination('favorites', undefined, 10);
+  const [favoritePosts, setFavoritePosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchFavoritePosts = async () => {
+      setLoading(true);
+      try {
+        const response = await postsService.getFavoritePosts();
+        if (response.success) {
+          setFavoritePosts(response.data);
+          setPagination(response.pagination);
+        }
+      } catch (error) {
+        console.error('Favori postlar yüklenirken hata:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchFavoritePosts();
+  }, []);
 
   // Header animasyonu için
   const headerOpacity = useSharedValue(1);
@@ -148,7 +161,12 @@ export default function UserFavoritesScreen() {
             style={styles.authorInfo}
             onPress={() => {
               if (item.authorId) {
-                router.push(`/user-posts/${item.authorId}`);
+                router.push({
+                  pathname: `/user/${item.authorId}`,
+                  params: {
+                    viewMode: item.isAnonymous ? 'anonymous' : 'public',
+                  }
+                });
               }
             }}
           >
@@ -159,7 +177,7 @@ export default function UserFavoritesScreen() {
             </View>
             <View>
               <Text style={styles.authorName}>
-                {item.authorName || 'Anonim'}
+                {item.isAnonymous ? 'Anonim' : (item.authorName || 'Kullanıcı')}
               </Text>
               <Text style={styles.postDate}>
                 {timeAgo(item.createdAt)}
@@ -227,15 +245,10 @@ export default function UserFavoritesScreen() {
         </Text>
       </View>
 
-      <PaginatedFlatList
+      <FlatList
         data={favoritePosts}
         renderItem={renderPostItem}
         keyExtractor={(item) => item.id}
-        loading={loading}
-        pagination={pagination}
-        onLoadMore={loadMore}
-        onRefresh={refresh}
-        canLoadMore={canLoadMore}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
