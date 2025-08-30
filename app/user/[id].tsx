@@ -39,18 +39,18 @@ export default function UserProfileScreen() {
         }
     }, [id, viewMode]);
 
-    // Yanıp sönen ışık animasyonu
+    // Yanıp sönen ışık animasyonu - Daha belirgin
     useEffect(() => {
         const pulseAnimation = Animated.loop(
             Animated.sequence([
                 Animated.timing(pulseAnim, {
-                    toValue: 1.3,
-                    duration: 1000,
+                    toValue: 1.4,
+                    duration: 1500,
                     useNativeDriver: true,
                 }),
                 Animated.timing(pulseAnim, {
                     toValue: 1,
-                    duration: 1000,
+                    duration: 1500,
                     useNativeDriver: true,
                 }),
             ])
@@ -103,18 +103,18 @@ export default function UserProfileScreen() {
                                         <View style={styles.postDivider}>
                                             <View style={styles.dividerLine} />
                                             <View style={styles.orangeDot}>
-                                                <Animated.View 
-                                                    style={[
-                                                        styles.pulseLight,
-                                                        {
-                                                            transform: [{ scale: pulseAnim }],
-                                                            opacity: pulseAnim.interpolate({
-                                                                inputRange: [1, 1.3],
-                                                                outputRange: [0.6, 1],
-                                                            }),
-                                                        }
-                                                    ]} 
-                                                />
+                                                                                                 <Animated.View 
+                                                     style={[
+                                                         styles.pulseLight,
+                                                         {
+                                                             transform: [{ scale: pulseAnim }],
+                                                             opacity: pulseAnim.interpolate({
+                                                                 inputRange: [1, 1.4],
+                                                                 outputRange: [0.6, 1],
+                                                             }),
+                                                         }
+                                                     ]} 
+                                                 />
                                             </View>
                                         </View>
                                     )}
@@ -199,9 +199,9 @@ const getStyles = (colors: any) => StyleSheet.create({
         alignItems: 'center',
     },
     pulseLight: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        width: 6,
+        height: 6,
+        borderRadius: 3,
         backgroundColor: colors.background,
     },
     emptyContainer: {

@@ -37,12 +37,12 @@ const ProfilePostCard = ({
   const isAnonymous = typeof item?.authorName === 'string' && item.authorName.startsWith('Anonim');
   
   return (
-         <View style={{
-       backgroundColor: colors.card,
-       borderRadius: 16,
-       padding: 18,
-       marginBottom: 12,
-       borderWidth: 1,
+    <View style={{
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      padding: 18,
+      marginBottom: 12,
+      borderWidth: 1,
        borderColor: isEditing 
          ? colors.primaryButton + '80' 
          : isAnonymous 
@@ -104,34 +104,34 @@ const ProfilePostCard = ({
       ) : (
         // NORMAL GÖRÜNÜM (Aynı kalıyor)
         <>
-                     {isAnonymous && (
-             <View style={{
-               flexDirection: 'row',
-               alignItems: 'center',
-               marginBottom: 8,
+      {isAnonymous && (
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 8,
                paddingHorizontal: 8,
                paddingVertical: 4,
                backgroundColor: colors.primaryButton + '15',
                borderRadius: 8,
                alignSelf: 'flex-start',
-             }}>
+        }}>
                <UserCircle size={16} color={colors.primaryButton} />
-               <Text style={{
-                 fontFamily: 'Nunito-SemiBold',
-                 fontSize: 12,
-                 color: colors.primaryButton,
-                 marginLeft: 6,
-               }}>Anonim Paylaşım</Text>
-             </View>
-           )}
           <Text style={{
-            fontFamily: 'Nunito-Regular',
-            fontSize: 16,
-            color: colors.textDark,
-            lineHeight: 24,
-          }} numberOfLines={4}>{item.text}</Text>
+            fontFamily: 'Nunito-SemiBold',
+            fontSize: 12,
+                 color: colors.primaryButton,
+            marginLeft: 6,
+          }}>Anonim Paylaşım</Text>
+        </View>
+      )}
+      <Text style={{
+        fontFamily: 'Nunito-Regular',
+        fontSize: 16,
+        color: colors.textDark,
+        lineHeight: 24,
+      }} numberOfLines={4}>{item.text}</Text>
 
-          <View style={{ flexDirection: 'row', marginTop: 12 }}>
+      <View style={{ flexDirection: 'row', marginTop: 12 }}>
             <TouchableOpacity 
               onPress={() => onStartEdit(item.id, item.text)} 
               style={{ 
@@ -144,9 +144,9 @@ const ProfilePostCard = ({
                 backgroundColor: colors.mode === 'dark' ? colors.header + '25' : colors.header + '15',
               }}
             >
-              <PencilSimple size={16} color={colors.textMuted} />
-              <Text style={{ fontFamily: 'Nunito-SemiBold', fontSize: 12, marginLeft: 6, color: colors.textMuted }}>Düzenle</Text>
-            </TouchableOpacity>
+          <PencilSimple size={16} color={colors.textMuted} />
+          <Text style={{ fontFamily: 'Nunito-SemiBold', fontSize: 12, marginLeft: 6, color: colors.textMuted }}>Düzenle</Text>
+        </TouchableOpacity>
             <TouchableOpacity 
               onPress={() => onDelete(item.id)} 
               style={{ 
@@ -158,10 +158,10 @@ const ProfilePostCard = ({
                 backgroundColor: colors.mode === 'dark' ? '#FF4444' + '25' : '#FF4444' + '25',
               }}
             >
-              <Trash size={16} color={colors.textMuted} />
-              <Text style={{ fontFamily: 'Nunito-SemiBold', fontSize: 12, marginLeft: 6, color: colors.textMuted }}>Sil</Text>
-            </TouchableOpacity>
-          </View>
+          <Trash size={16} color={colors.textMuted} />
+          <Text style={{ fontFamily: 'Nunito-SemiBold', fontSize: 12, marginLeft: 6, color: colors.textMuted }}>Sil</Text>
+        </TouchableOpacity>
+      </View>
         </>
       )}
 
@@ -383,12 +383,12 @@ export default function ProfileScreen() {
           const postCount = showAnonymousPosts 
             ? userPosts.data.filter(post => post.isAnonymous).length
             : userPosts.data.filter(post => !post.isAnonymous).length;
-           
-           setStats({
+
+          setStats({
              postCount: postCount,
-             likeCount: userLikedCount,        // Kullanıcının beğendiği post sayısı
-             favoriteCount: userFavoriteCount, // Kullanıcının favorilediği post sayısı
-           });
+            likeCount: userLikedCount,        // Kullanıcının beğendiği post sayısı
+            favoriteCount: userFavoriteCount, // Kullanıcının favorilediği post sayısı
+          });
         } catch (error) {
           console.error('Veri yüklenirken hata:', error);
           showFeedback({ message: 'Veriler yüklenirken hata oluştu', type: 'error' });
@@ -428,11 +428,11 @@ export default function ProfileScreen() {
 
   const handleSaveEdit = async () => {
     if (!editingPostId || !currentEditText.trim()) return;
-
+    
     try {
       await postsService.updatePost(editingPostId, { text: currentEditText.trim() });
       showFeedback({ message: 'Paylaşım güncellendi', type: 'success' });
-
+      
       // Lokal state'i güncelle
       setPosts(prevPosts => 
         prevPosts.map(post => 
@@ -485,30 +485,30 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-        <ScrollView 
-          style={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          contentContainerStyle={{ paddingBottom: 100 }}
-        >
-          <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
-            <View style={styles.header}>
-              <View style={styles.avatar}>
-                <UserIcon size={isSmallDevice ? 32 : 40} color={colors.header} weight="fill" />
-              </View>
-              <View style={styles.userInfo}>
-                <Text style={styles.name}>{userData?.username || user?.username || 'Kullanıcı'}</Text>
-                <Text style={styles.email}>{user?.email}</Text>
-              </View>
-              <Link href="/profile/edit" asChild>
-                <TouchableOpacity style={styles.editButton}>
-                  <PencilSimple size={isSmallDevice ? 18 : 20} color={colors.textDark} />
-                </TouchableOpacity>
-              </Link>
+      <ScrollView 
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        <Animated.View style={[styles.headerContainer, headerAnimatedStyle]}>
+          <View style={styles.header}>
+            <View style={styles.avatar}>
+              <UserIcon size={isSmallDevice ? 32 : 40} color={colors.header} weight="fill" />
             </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.name}>{userData?.username || user?.username || 'Kullanıcı'}</Text>
+              <Text style={styles.email}>{user?.email}</Text>
+            </View>
+            <Link href="/profile/edit" asChild>
+              <TouchableOpacity style={styles.editButton}>
+                <PencilSimple size={isSmallDevice ? 18 : 20} color={colors.textDark} />
+              </TouchableOpacity>
+            </Link>
+          </View>
 
-                         <View style={styles.statsContainer}>
+          <View style={styles.statsContainer}>
                <StatMinimal 
                  stats={stats} 
                  colors={colors} 
@@ -516,21 +516,21 @@ export default function ProfileScreen() {
                  showAnonymousPosts={showAnonymousPosts}
                  onTogglePosts={() => setShowAnonymousPosts(!showAnonymousPosts)}
                />
-             </View>
-          </Animated.View>
+          </View>
+        </Animated.View>
 
-          <View style={styles.contentContainer}>
-            <Text style={styles.sectionTitle}>Paylaşımların</Text>
-            {loading ? (
-              <ActivityIndicator size="large" color={colors.primaryButton} style={{ marginTop: 40 }} />
-            ) : posts.length === 0 ? (
-              <Text style={styles.emptyText}>Henüz bir paylaşımın yok.</Text>
-            ) : (
-              posts.map((item) => (
-                <ProfilePostCard 
-                  key={item.id}
-                  item={item} 
-                  colors={colors} 
+        <View style={styles.contentContainer}>
+          <Text style={styles.sectionTitle}>Paylaşımların</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color={colors.primaryButton} style={{ marginTop: 40 }} />
+          ) : posts.length === 0 ? (
+            <Text style={styles.emptyText}>Henüz bir paylaşımın yok.</Text>
+          ) : (
+            posts.map((item) => (
+              <ProfilePostCard 
+                key={item.id}
+                item={item} 
+                colors={colors} 
                   isEditing={item.id === editingPostId}
                   editedText={currentEditText}
                   onSetEditedText={setCurrentEditText}
@@ -541,7 +541,7 @@ export default function ProfileScreen() {
                   onSave={handleSaveEdit}
                   onCancel={handleCancelEdit}
                   onDelete={async (id) => {
-                    setPostToDelete(item);
+                  setPostToDelete(item);
                     const confirmed = await showConfirm({
                       title: 'Paylaşımı Sil',
                       message: 'Silmek istediğinize emin misiniz?',
@@ -553,21 +553,21 @@ export default function ProfileScreen() {
                       return;
                     }
                     await handleDelete();
-                  }}
-                />
-              ))
-            )}
-          </View>
-        </ScrollView>
-      
-        <TouchableOpacity style={styles.signOutButton} onPress={signOutUser}>
-          <SignOut size={isSmallDevice ? 18 : 20} color="#D9534F" />
-          <Text style={styles.signOutText}>Çıkış Yap</Text>
-        </TouchableOpacity>
+                }}
+              />
+            ))
+          )}
+        </View>
+      </ScrollView>
+    
+      <TouchableOpacity style={styles.signOutButton} onPress={signOutUser}>
+        <SignOut size={isSmallDevice ? 18 : 20} color="#D9534F" />
+        <Text style={styles.signOutText}>Çıkış Yap</Text>
+      </TouchableOpacity>
 
 
-              </SafeAreaView>
-    );
+    </SafeAreaView>
+  );
 }
 
 const getStyles = (colors: any, safeTop: number, safeBottom: number, isSmallDevice: boolean, isTablet: boolean) => StyleSheet.create({
